@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { calcDayStats } from '../data/defaultData'
 import { playSound, useTitleFlash, playApplause } from '../components/useAlarm'
 import { useMicRhythm } from './games/useMicRhythm'
-import BowlingReward from './games/BowlingReward'
+import BowlingReward, { pinsForPct } from './games/BowlingReward'
 
 const TAU = 2 * Math.PI
 
@@ -450,8 +450,11 @@ function RhythmTimer({ exercise, onComplete }) {
   // ── Mikrofon: pokrycie czasowe mowy podczas przebiegu "cichego" (rytm/tempo, nie treść) ──
   const mic = useMicRhythm()
   const micStartedRef = useRef(false)
-  const [showReward, setShowReward] = useState(false)
-  const [rewardPct, setRewardPct]   = useState(0)
+  const [showThrow, setShowThrow] = useState(false)
+  const [throwPct, setThrowPct]   = useState(0)
+  const throwHistoryRef      = useRef([])   // % dla każdego rzutu (zdania) w tej sesji
+  const pendingNextSentenceRef = useRef(0)
+  const isLastThrowRef       = useRef(false)
 
   const ensureMicStarted = () => {
     if (!micStartedRef.current) {
@@ -760,21 +763,34 @@ function RhythmTimer({ exercise, onComplete }) {
       placeDotInstant(0)
       goToWord(sIdx, 0)
     } else {
+      // Koniec przebiegu cichego DANEGO zdania = koniec jednego "rzutu" w grze kręgli.
+      // Dwa zdania = jedna runda (dwa rzuty), tak jak w prawdziwych kręglach.
+      bump()
+      const res = mic.getResult()
+      mic.resetCounters()
       const nextS = sIdx + 1
-      if (nextS >= sentenceList.length) {
-        bump()
+      const isLast = nextS >= sentenceList.length
+      throwHistoryRef.current = [...throwHistoryRef.current, res.ratio * 100]
+      isLastThrowRef.current = isLast
+      pendingNextSentenceRef.current = nextS
+      setRunning(false)
+      setThrowPct(res.ratio * 100)
+      setShowThrow(true)
+      if (isLast) {
         phaseRef.current = 'done'
         setPhase('done')
-        setRunning(false)
-        const res = mic.getResult()
         mic.stop()
         micStartedRef.current = false
-        setRewardPct(res.ratio * 100)
-        setShowReward(true)
-        return
       }
-      enterSentence(nextS)
+      return
     }
+  }
+
+  const handleThrowDone = () => {
+    setShowThrow(false)
+    if (isLastThrowRef.current) return // koniec ćwiczenia — normalne przyciski Powtórz/Ukończ
+    setRunning(true)
+    enterSentence(pendingNextSentenceRef.current)
   }
 
   const handleStartPause = () => {
@@ -793,7 +809,8 @@ function RhythmTimer({ exercise, onComplete }) {
     setRunning(true)
     if (phase === 'idle' || phase === 'done') {
       setStepsDone(0)
-      setShowReward(false)
+      setShowThrow(false)
+      throwHistoryRef.current = []
       ensureMicStarted()
       enterSentence(0)
     } else if (phaseRef.current === 'reading' && pass === 'with_narrator' && boundarySupportedRef.current !== false) {
@@ -814,7 +831,8 @@ function RhythmTimer({ exercise, onComplete }) {
   const restart = () => {
     setPhase('idle')
     setStepsDone(0)
-    setShowReward(false)
+    setShowThrow(false)
+    throwHistoryRef.current = []
     ensureMicStarted()
     setRunning(true)
     enterSentence(0)
@@ -923,12 +941,17 @@ function RhythmTimer({ exercise, onComplete }) {
           : `Zdanie ${sentenceIdx + 1}/${sentenceList.length} · słowo ${idx + 1} z ${currentWords.length}`}
       </div>
 
-      {phase === 'done' && showReward ? (
-        <BowlingReward pct={rewardPct} onDone={() => setShowReward(false)} />
+      {showThrow ? (
+        <BowlingReward pct={throwPct} onDone={handleThrowDone} />
       ) : phase === 'done' ? (
-        <div style={{ display: 'flex', gap: 8 }}>
-          <button className="btn btn-outline" style={{ flex: 1 }} onClick={restart}>↩ Powtórz</button>
-          <button className="btn btn-green" style={{ flex: 2 }} onClick={onComplete}>✓ Ukończ ćwiczenie</button>
+        <div>
+          <p style={{ textAlign: 'center', fontSize: 13, color: 'var(--muted)', marginBottom: 10 }}>
+            Rzutów: {throwHistoryRef.current.length} · Łącznie kręgli: {throwHistoryRef.current.reduce((s, p) => s + pinsForPct(p), 0)}/{throwHistoryRef.current.length * 10}
+          </p>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button className="btn btn-outline" style={{ flex: 1 }} onClick={restart}>↩ Powtórz</button>
+            <button className="btn btn-green" style={{ flex: 2 }} onClick={onComplete}>✓ Ukończ ćwiczenie</button>
+          </div>
         </div>
       ) : (
         <button className="btn btn-primary btn-full" onClick={handleStartPause}>

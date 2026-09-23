@@ -87,6 +87,11 @@ export function useMicRhythm() {
     windowActiveRef.current = active
   }, [])
 
+  const resetCounters = useCallback(() => {
+    windowMsRef.current = 0
+    speakingMsRef.current = 0
+  }, [])
+
   const getResult = useCallback(() => {
     const windowMs   = windowMsRef.current
     const speakingMs = speakingMsRef.current
@@ -94,5 +99,5 @@ export function useMicRhythm() {
     return { ratio, speakingMs, windowMs }
   }, [])
 
-  return { start, stop, setWindowActive, getResult }
+  return { start, stop, setWindowActive, resetCounters, getResult }
 }

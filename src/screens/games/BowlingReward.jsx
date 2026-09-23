@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 // Mapowanie % dopasowania rytmu → liczba przewróconych kręgli.
 // 90-100% = strike (10), spadek co ~10pkt = 2 kręgle mniej, praktyczny brak
 // mowy (poniżej progu szumu tła) = kula w ogóle nie trafia (miss).
-function pinsForPct(pct) {
+export function pinsForPct(pct) {
   if (pct >= 90) return 10
   if (pct >= 80) return 8
   if (pct >= 70) return 6
