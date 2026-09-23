@@ -13,43 +13,33 @@ export function pinsForPct(pct) {
   return 0
 }
 
-// 10 kręgli w klasycznym trójkącie — pojedynczy z tyłu (daleko), rząd 4 z przodu (blisko kuli).
+// 10 kręgli w trójkącie — najszerszy rząd (4) DALEKO od kuli (u góry toru),
+// pojedynczy kręgiel (czubek trójkąta) NAJBLIŻEJ kuli (u dołu, tuż przy niej).
 const PIN_POSITIONS = [
-  { x: 150, y: 30 },                                              // rząd 1 (tył)
-  { x: 132, y: 58 }, { x: 168, y: 58 },                           // rząd 2
-  { x: 114, y: 86 }, { x: 150, y: 86 }, { x: 186, y: 86 },        // rząd 3
-  { x: 96, y: 114 }, { x: 132, y: 114 }, { x: 168, y: 114 }, { x: 204, y: 114 }, // rząd 4 (przód)
+  { x: 96, y: 30 }, { x: 132, y: 30 }, { x: 168, y: 30 }, { x: 204, y: 30 }, // rząd 1 (daleko, 4 kręgle)
+  { x: 114, y: 58 }, { x: 150, y: 58 }, { x: 186, y: 58 },                  // rząd 2 (3)
+  { x: 132, y: 86 }, { x: 168, y: 86 },                                    // rząd 3 (2)
+  { x: 150, y: 114 },                                                      // rząd 4 (blisko kuli, czubek)
 ]
-// Kolejność padania: od przodu/środka na zewnątrz i do tyłu — naturalny rozjazd po trafieniu.
-const FALL_ORDER = [8, 7, 4, 9, 6, 1, 5, 2, 3, 0]
+// Kolejność padania: od czubka (najbliżej kuli) w głąb trójkąta na zewnątrz.
+const FALL_ORDER = [9, 7, 8, 5, 4, 6, 1, 2, 0, 3]
 
 function Pin({ x, y, fallen }) {
-  // Obrót wykonywany bezpośrednio atrybutem SVG transform (nie CSS) —
-  // pivot podany jawnie jako (x, y+podstawa), więc zawsze poprawny niezależnie
-  // od transform-box/transform-origin quirks przeglądarki.
-  const pivotY = y + 22
+  const pivotY = y + 16
   return (
-    <g
-      style={{ transition: 'transform 0.4s ease, opacity 0.4s ease' }}
-      transform={fallen ? `rotate(80 ${x} ${pivotY})` : 'rotate(0)'}
-      opacity={fallen ? 0.35 : 1}
-    >
-      {/* korpus kręgla */}
-      <path
-        d={`M ${x - 5} ${y + 22}
-            C ${x - 6} ${y + 10}, ${x - 3} ${y + 6}, ${x} ${y}
-            C ${x + 3} ${y + 6}, ${x + 6} ${y + 10}, ${x + 5} ${y + 22}
-            Z`}
-        fill="#fff" stroke="#B91C1C" strokeWidth="1.5"
-      />
-      {/* czerwony pasek */}
-      <rect x={x - 5} y={y + 10} width="10" height="3.5" fill="#DC2626" />
+    <g style={{ transition: 'transform 0.4s ease, opacity 0.4s ease' }}
+       transform={fallen ? `rotate(80 ${x} ${pivotY})` : 'rotate(0)'}
+       opacity={fallen ? 0.25 : 1}>
+      <ellipse cx={x} cy={y + 17} rx="8" ry="3" fill="#00000022" />
+      <circle cx={x} cy={y} r="9" fill="#fff" stroke="#C4B5FD" strokeWidth="2" />
+      <circle cx={x} cy={y} r="3.5" fill="#A78BFA" />
     </g>
   )
 }
 
 export default function BowlingReward({ pct, onDone }) {
   const [phase, setPhase] = useState('rolling') // rolling | impact | result
+  const [missSide] = useState(() => (Math.random() < 0.5 ? 'left' : 'right'))
   const pins = pinsForPct(pct)
   const isMiss = pins === 0
   const fallenSet = new Set(FALL_ORDER.slice(0, pins))
@@ -60,31 +50,43 @@ export default function BowlingReward({ pct, onDone }) {
     return () => { clearTimeout(t1); clearTimeout(t2) }
   }, [])
 
-  const ballCenterX = 150
-  const ballX = isMiss ? 210 : ballCenterX
-  const ballY = phase === 'rolling' ? 250 : (isMiss ? 95 : 140)
+  const rolling = phase === 'rolling'
+  let ballX, ballY
+  if (isMiss) {
+    ballX = rolling ? 150 : (missSide === 'left' ? 78 : 222)
+    ballY = rolling ? 250 : 12
+  } else {
+    ballX = 150
+    ballY = rolling ? 250 : 130
+  }
 
   return (
     <div style={{ textAlign: 'center' }}>
       <style>{`
-        .stc-ball { transition: cx 1.0s cubic-bezier(.3,.6,.4,1), cy 1.0s cubic-bezier(.3,.6,.4,1); }
+        .stc-ball, .stc-ball-shadow { transition: cx 1.05s cubic-bezier(.35,.6,.4,1), cy 1.05s cubic-bezier(.35,.6,.4,1); }
       `}</style>
 
       <svg viewBox="0 0 300 270" width="100%" height="240" style={{ maxWidth: 240 }}>
         <defs>
           <linearGradient id="stc-lane" x1="0" y1="0" x2="1" y2="0">
             <stop offset="0%"  stopColor="#D9A066" />
-            <stop offset="12%" stopColor="#E8B67C" />
-            <stop offset="25%" stopColor="#D9A066" />
-            <stop offset="50%" stopColor="#E8B67C" />
-            <stop offset="75%" stopColor="#D9A066" />
-            <stop offset="88%" stopColor="#E8B67C" />
+            <stop offset="10%" stopColor="#E8B67C" />
+            <stop offset="22%" stopColor="#D9A066" />
+            <stop offset="38%" stopColor="#E8B67C" />
+            <stop offset="50%" stopColor="#D9A066" />
+            <stop offset="62%" stopColor="#E8B67C" />
+            <stop offset="78%" stopColor="#D9A066" />
+            <stop offset="90%" stopColor="#E8B67C" />
             <stop offset="100%" stopColor="#D9A066" />
           </linearGradient>
         </defs>
 
-        {/* tor */}
+        {/* tor / parkiet */}
         <rect x="70" y="0" width="160" height="250" fill="url(#stc-lane)" stroke="#B9834A" strokeWidth="2" />
+        {/* poprzeczne linie deski parkietu */}
+        {Array.from({ length: 8 }).map((_, i) => (
+          <line key={i} x1="70" x2="230" y1={i * 32 + 10} y2={i * 32 + 10} stroke="#B9834A" strokeWidth="1" opacity="0.35" />
+        ))}
         {/* rynny po bokach */}
         <rect x="52" y="0" width="18" height="250" fill="#9CA3AF" />
         <rect x="230" y="0" width="18" height="250" fill="#9CA3AF" />
@@ -92,8 +94,8 @@ export default function BowlingReward({ pct, onDone }) {
         {/* strzałki kierunkowe na torze */}
         {[0, 1, 2].map(i => (
           <polygon key={i}
-            points={`150,${170 - i * 22} 142,${185 - i * 22} 158,${185 - i * 22}`}
-            fill="#DC2626" opacity="0.55" />
+            points={`150,${175 - i * 22} 142,${190 - i * 22} 158,${190 - i * 22}`}
+            fill="#DC2626" opacity="0.5" />
         ))}
 
         {/* kręgle */}
@@ -101,6 +103,8 @@ export default function BowlingReward({ pct, onDone }) {
           <Pin key={i} x={p.x} y={p.y} fallen={phase !== 'rolling' && fallenSet.has(i)} />
         ))}
 
+        {/* cień kuli */}
+        <ellipse className="stc-ball-shadow" cx={ballX} cy={ballY + 12} rx="14" ry="4" fill="#00000030" />
         {/* kula */}
         <circle className="stc-ball" cx={ballX} cy={ballY} r="15" fill="#7C2D12" />
         <circle className="stc-ball" cx={ballX - 5} cy={ballY - 5} r="4" fill="#FCA5A5" opacity="0.6" />
