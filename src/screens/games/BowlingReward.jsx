@@ -72,14 +72,13 @@ export default function BowlingReward({ pct, onDone }) {
     return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3) }
   }, [])
 
-  // Tor jest ~3x dłuższy podczas samego rzutu (rolling/impact), skraca się przy wyniku.
-  const tall = phase === 'rolling' || phase === 'impact'
-  const laneH = tall ? 700 : 250
-  const viewH = tall ? 720 : 270
+  // Tor ma stały rozmiar (bez zmiany rozmiaru w trakcie rzutu — poprzednia wersja z tym się psuła)
+  const laneH = 250
+  const viewH = 270
 
   let ballX, ballY
   if (phase === 'rolling') {
-    ballX = 150; ballY = 690
+    ballX = 150; ballY = 240
   } else if (isMiss) {
     ballX = missSide === 'left' ? 66 : 234
     ballY = 140
