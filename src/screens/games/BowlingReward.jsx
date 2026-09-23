@@ -1,8 +1,6 @@
 import { useEffect, useState } from 'react'
 
 // Mapowanie % dopasowania rytmu → liczba przewróconych kręgli.
-// 90-100% = strike (10), spadek co ~10pkt = 2 kręgle mniej, praktyczny brak
-// mowy (poniżej progu szumu tła) = kula w ogóle nie trafia (miss).
 export function pinsForPct(pct) {
   if (pct >= 90) return 10
   if (pct >= 80) return 8
@@ -13,26 +11,49 @@ export function pinsForPct(pct) {
   return 0
 }
 
-// 10 kręgli w trójkącie — najszerszy rząd (4) DALEKO od kuli (u góry toru),
-// pojedynczy kręgiel (czubek trójkąta) NAJBLIŻEJ kuli (u dołu, tuż przy niej).
+// Trójkąt kręgli — szeroki rząd (4) daleko od kuli (u góry), pojedynczy (czubek) blisko kuli.
 const PIN_POSITIONS = [
-  { x: 96, y: 30 }, { x: 132, y: 30 }, { x: 168, y: 30 }, { x: 204, y: 30 }, // rząd 1 (daleko, 4 kręgle)
-  { x: 114, y: 58 }, { x: 150, y: 58 }, { x: 186, y: 58 },                  // rząd 2 (3)
-  { x: 132, y: 86 }, { x: 168, y: 86 },                                    // rząd 3 (2)
-  { x: 150, y: 114 },                                                      // rząd 4 (blisko kuli, czubek)
+  { x: 96, y: 30 }, { x: 132, y: 30 }, { x: 168, y: 30 }, { x: 204, y: 30 },
+  { x: 114, y: 58 }, { x: 150, y: 58 }, { x: 186, y: 58 },
+  { x: 132, y: 86 }, { x: 168, y: 86 },
+  { x: 150, y: 114 },
 ]
-// Kolejność padania: od czubka (najbliżej kuli) w głąb trójkąta na zewnątrz.
 const FALL_ORDER = [9, 7, 8, 5, 4, 6, 1, 2, 0, 3]
+
+// Deski parkietu — różne odcienie i szerokości, żeby nie wyglądało na regularny wzór.
+const PLANK_SHADES = ['#C98B4F', '#D9A066', '#E8B67C', '#CE9358', '#DFAE72', '#C68849']
+function makePlanks(laneHeight) {
+  const planks = []
+  const rowH = 15
+  let y = 0
+  let row = 0
+  while (y < laneHeight) {
+    const offset = (row % 2) * 20
+    let x = 70 - offset
+    let col = 0
+    while (x < 230) {
+      const w = 26 + ((row + col) % 3) * 6
+      const shade = PLANK_SHADES[(row * 3 + col) % PLANK_SHADES.length]
+      planks.push({ x: Math.max(70, x), y, w: Math.min(w, 230 - Math.max(70, x)), h: rowH, shade })
+      x += w
+      col++
+    }
+    y += rowH
+    row++
+  }
+  return planks
+}
 
 function Pin({ x, y, fallen }) {
   const pivotY = y + 16
   return (
     <g style={{ transition: 'transform 0.4s ease, opacity 0.4s ease' }}
        transform={fallen ? `rotate(80 ${x} ${pivotY})` : 'rotate(0)'}
-       opacity={fallen ? 0.25 : 1}>
-      <ellipse cx={x} cy={y + 17} rx="8" ry="3" fill="#00000022" />
+       opacity={fallen ? 0.22 : 1}>
+      <ellipse cx={x} cy={y + 17} rx="8" ry="3" fill="#00000030" />
       <circle cx={x} cy={y} r="9" fill="#fff" stroke="#C4B5FD" strokeWidth="2" />
       <circle cx={x} cy={y} r="3.5" fill="#A78BFA" />
+      <circle cx={x - 2.5} cy={y - 3} r="1.6" fill="#fff" opacity="0.9" />
     </g>
   )
 }
@@ -45,69 +66,65 @@ export default function BowlingReward({ pct, onDone }) {
   const fallenSet = new Set(FALL_ORDER.slice(0, pins))
 
   useEffect(() => {
-    const t1 = setTimeout(() => setPhase('impact'), 1100)
-    const t2 = setTimeout(() => setPhase('result'), 1700)
-    return () => { clearTimeout(t1); clearTimeout(t2) }
+    const t1 = setTimeout(() => setPhase('impact'), 1200)
+    const t2 = setTimeout(() => setPhase('result'), 1750)
+    const t3 = setTimeout(() => onDone(), 3200) // auto-przejście dalej, bez pytania
+    return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3) }
   }, [])
 
-  const rolling = phase === 'rolling'
+  // Tor jest ~3x dłuższy podczas samego rzutu (rolling/impact), skraca się przy wyniku.
+  const tall = phase === 'rolling' || phase === 'impact'
+  const laneH = tall ? 700 : 250
+  const viewH = tall ? 720 : 270
+
   let ballX, ballY
-  if (isMiss) {
-    ballX = rolling ? 150 : (missSide === 'left' ? 78 : 222)
-    ballY = rolling ? 250 : 12
+  if (phase === 'rolling') {
+    ballX = 150; ballY = 690
+  } else if (isMiss) {
+    ballX = missSide === 'left' ? 66 : 234
+    ballY = 140
   } else {
     ballX = 150
-    ballY = rolling ? 250 : 130
+    ballY = 140
   }
+
+  const planks = makePlanks(laneH)
 
   return (
     <div style={{ textAlign: 'center' }}>
       <style>{`
-        .stc-ball, .stc-ball-shadow { transition: cx 1.05s cubic-bezier(.35,.6,.4,1), cy 1.05s cubic-bezier(.35,.6,.4,1); }
+        .stc-ball, .stc-ball-shadow {
+          transition: cx 1.15s cubic-bezier(.6,.02,.85,.35), cy 1.15s cubic-bezier(.6,.02,.85,.35);
+        }
       `}</style>
 
-      <svg viewBox="0 0 300 270" width="100%" height="240" style={{ maxWidth: 240 }}>
-        <defs>
-          <linearGradient id="stc-lane" x1="0" y1="0" x2="1" y2="0">
-            <stop offset="0%"  stopColor="#D9A066" />
-            <stop offset="10%" stopColor="#E8B67C" />
-            <stop offset="22%" stopColor="#D9A066" />
-            <stop offset="38%" stopColor="#E8B67C" />
-            <stop offset="50%" stopColor="#D9A066" />
-            <stop offset="62%" stopColor="#E8B67C" />
-            <stop offset="78%" stopColor="#D9A066" />
-            <stop offset="90%" stopColor="#E8B67C" />
-            <stop offset="100%" stopColor="#D9A066" />
-          </linearGradient>
-        </defs>
-
-        {/* tor / parkiet */}
-        <rect x="70" y="0" width="160" height="250" fill="url(#stc-lane)" stroke="#B9834A" strokeWidth="2" />
-        {/* poprzeczne linie deski parkietu */}
-        {Array.from({ length: 8 }).map((_, i) => (
-          <line key={i} x1="70" x2="230" y1={i * 32 + 10} y2={i * 32 + 10} stroke="#B9834A" strokeWidth="1" opacity="0.35" />
+      <svg viewBox={`0 0 300 ${viewH}`} width="100%" height="240" style={{ maxWidth: 220, transition: 'height 0.3s' }}>
+        <rect x="70" y="0" width="160" height={laneH} fill="#D9A066" stroke="#A9713C" strokeWidth="2" />
+        {planks.map((p, i) => (
+          <rect key={i} x={p.x} y={p.y} width={p.w} height={p.h} fill={p.shade}
+            stroke="#00000014" strokeWidth="0.6" />
         ))}
-        {/* rynny po bokach */}
-        <rect x="52" y="0" width="18" height="250" fill="#9CA3AF" />
-        <rect x="230" y="0" width="18" height="250" fill="#9CA3AF" />
+        {/* połysk wzdłuż toru */}
+        <rect x="80" y="0" width="18" height={laneH} fill="#fff" opacity="0.08" />
 
-        {/* strzałki kierunkowe na torze */}
+        {/* rynny po bokach */}
+        <rect x="52" y="0" width="18" height={laneH} fill="#9CA3AF" />
+        <rect x="230" y="0" width="18" height={laneH} fill="#9CA3AF" />
+
+        {/* strzałki kierunkowe */}
         {[0, 1, 2].map(i => (
           <polygon key={i}
             points={`150,${175 - i * 22} 142,${190 - i * 22} 158,${190 - i * 22}`}
             fill="#DC2626" opacity="0.5" />
         ))}
 
-        {/* kręgle */}
         {PIN_POSITIONS.map((p, i) => (
-          <Pin key={i} x={p.x} y={p.y} fallen={phase !== 'rolling' && fallenSet.has(i)} />
+          <Pin key={i} x={p.x} y={p.y} fallen={phase === 'result' && fallenSet.has(i)} />
         ))}
 
-        {/* cień kuli */}
-        <ellipse className="stc-ball-shadow" cx={ballX} cy={ballY + 12} rx="14" ry="4" fill="#00000030" />
-        {/* kula */}
+        <ellipse className="stc-ball-shadow" cx={ballX} cy={ballY + 13} rx="14" ry="4" fill="#00000035" />
         <circle className="stc-ball" cx={ballX} cy={ballY} r="15" fill="#7C2D12" />
-        <circle className="stc-ball" cx={ballX - 5} cy={ballY - 5} r="4" fill="#FCA5A5" opacity="0.6" />
+        <circle className="stc-ball" cx={ballX - 5} cy={ballY - 6} r="4.5" fill="#FCA5A5" opacity="0.7" />
       </svg>
 
       {phase === 'result' && (
@@ -120,7 +137,6 @@ export default function BowlingReward({ pct, onDone }) {
             <p style={{ fontWeight: 800, fontSize: 18 }}>Przewrócono {pins}/10 kręgli</p>
           )}
           <p style={{ fontSize: 13, color: 'var(--muted)', marginTop: 2 }}>Dopasowanie rytmu: {Math.round(pct)}%</p>
-          <button className="btn btn-primary" style={{ marginTop: 12 }} onClick={onDone}>Dalej</button>
         </div>
       )}
     </div>
