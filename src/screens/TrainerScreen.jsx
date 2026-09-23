@@ -821,6 +821,60 @@ export default function TrainerScreen({ exercises, setExercises, plan, setPlan }
               wymagało kalibracji przez logopedę przed uruchomieniem.
             </div>
 
+            {editEx.module === 'sz_lip' && form.visionEnabled && (<>
+              <div className="divider" />
+              <span style={{ fontWeight: 800, fontSize: 14, display: 'block', marginBottom: 10 }}>🎈 Ustawienia gry (balon)</span>
+
+              <label className="form-label">Czas dzióbka + głoski (sekundy)</label>
+              <input className="form-input" type="number" min={0.5} max={5} step={0.5}
+                value={form.params?.puckerDurationSec ?? 2}
+                onChange={e => setParam('puckerDurationSec', Number(e.target.value))} />
+
+              <label className="form-label">Czas zamkniętych ust — odpoczynek (sekundy)</label>
+              <input className="form-input" type="number" min={0.5} max={5} step={0.5}
+                value={form.params?.restDurationSec ?? 1}
+                onChange={e => setParam('restDurationSec', Number(e.target.value))} />
+
+              <label className="form-label">Liczba cykli do napełnienia balonu</label>
+              <input className="form-input" type="number" min={5} max={60}
+                value={form.params?.targetCycles ?? 30}
+                onChange={e => setParam('targetCycles', Number(e.target.value))} />
+
+              <label className="form-label">Poziom trudności</label>
+              <div style={{ display: 'flex', gap: 6, marginBottom: 14 }}>
+                {[
+                  { id: 'easy',   label: 'Łatwy' },
+                  { id: 'normal', label: 'Średni' },
+                  { id: 'hard',   label: 'Trudny' },
+                ].map(d => (
+                  <button key={d.id}
+                    className={`type-btn ${(form.params?.gameDifficulty || 'normal') === d.id ? 'active' : ''}`}
+                    style={{ flex: 1, padding: '9px 6px', fontSize: 12 }}
+                    onClick={() => setParam('gameDifficulty', d.id)}>
+                    {d.label}
+                  </button>
+                ))}
+              </div>
+              <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: -8, marginBottom: 12 }}>
+                Wpływa na wymagany poziom dzióbka do zaliczenia cyklu (łatwy = poziom 1+, trudny = poziom 3).
+              </div>
+
+              <label className="form-label">Postać w grze</label>
+              <div style={{ display: 'flex', gap: 6, marginBottom: 4 }}>
+                {[
+                  { id: 'boy',  label: '👦 Chłopiec' },
+                  { id: 'girl', label: '👧 Dziewczynka' },
+                ].map(c => (
+                  <button key={c.id}
+                    className={`type-btn ${(form.params?.character || 'boy') === c.id ? 'active' : ''}`}
+                    style={{ flex: 1, padding: '9px 6px', fontSize: 12 }}
+                    onClick={() => setParam('character', c.id)}>
+                    {c.label}
+                  </button>
+                ))}
+              </div>
+            </>)}
+
             <div className="divider" />
 
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
