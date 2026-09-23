@@ -1,6 +1,8 @@
 import { useState, useEffect, useRef } from 'react'
 import { calcDayStats } from '../data/defaultData'
 import { playSound, useTitleFlash, playApplause } from '../components/useAlarm'
+import { useMicRhythm } from './games/useMicRhythm'
+import BowlingReward from './games/BowlingReward'
 
 const TAU = 2 * Math.PI
 
@@ -445,6 +447,25 @@ function RhythmTimer({ exercise, onComplete }) {
   const [running, setRunning] = useState(false)
   const [stepsDone, setStepsDone] = useState(0)
 
+  // ── Mikrofon: pokrycie czasowe mowy podczas przebiegu "cichego" (rytm/tempo, nie treść) ──
+  const mic = useMicRhythm()
+  const micStartedRef = useRef(false)
+  const [showReward, setShowReward] = useState(false)
+  const [rewardPct, setRewardPct]   = useState(0)
+
+  const ensureMicStarted = () => {
+    if (!micStartedRef.current) {
+      micStartedRef.current = true
+      mic.start()
+    }
+  }
+
+  useEffect(() => {
+    mic.setWindowActive(running && pass === 'silent')
+  }, [running, pass])
+
+  useEffect(() => () => { mic.stop() }, [])
+
   const timeoutRef        = useRef(null)
   const phaseStartedAtRef = useRef(0)
   const phaseDurationRef  = useRef(0)
@@ -745,6 +766,11 @@ function RhythmTimer({ exercise, onComplete }) {
         phaseRef.current = 'done'
         setPhase('done')
         setRunning(false)
+        const res = mic.getResult()
+        mic.stop()
+        micStartedRef.current = false
+        setRewardPct(res.ratio * 100)
+        setShowReward(true)
         return
       }
       enterSentence(nextS)
@@ -767,6 +793,8 @@ function RhythmTimer({ exercise, onComplete }) {
     setRunning(true)
     if (phase === 'idle' || phase === 'done') {
       setStepsDone(0)
+      setShowReward(false)
+      ensureMicStarted()
       enterSentence(0)
     } else if (phaseRef.current === 'reading' && pass === 'with_narrator' && boundarySupportedRef.current !== false) {
       // Wznowienie w trakcie przebiegu z lektorem (zsynchronizowanego) — po prostu przeczytaj zdanie od nowa
@@ -786,6 +814,8 @@ function RhythmTimer({ exercise, onComplete }) {
   const restart = () => {
     setPhase('idle')
     setStepsDone(0)
+    setShowReward(false)
+    ensureMicStarted()
     setRunning(true)
     enterSentence(0)
   }
@@ -893,7 +923,9 @@ function RhythmTimer({ exercise, onComplete }) {
           : `Zdanie ${sentenceIdx + 1}/${sentenceList.length} · słowo ${idx + 1} z ${currentWords.length}`}
       </div>
 
-      {phase === 'done' ? (
+      {phase === 'done' && showReward ? (
+        <BowlingReward pct={rewardPct} onDone={() => setShowReward(false)} />
+      ) : phase === 'done' ? (
         <div style={{ display: 'flex', gap: 8 }}>
           <button className="btn btn-outline" style={{ flex: 1 }} onClick={restart}>↩ Powtórz</button>
           <button className="btn btn-green" style={{ flex: 2 }} onClick={onComplete}>✓ Ukończ ćwiczenie</button>
