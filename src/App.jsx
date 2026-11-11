@@ -3,7 +3,9 @@ import { DEFAULT_USER, DEFAULT_EXERCISES, generateTodayPlan, migrateExercises } 
 import { useStorage } from './hooks/useStorage'
 import { useAlarmChecker, useTitleFlash } from './components/useAlarm'
 import AlarmBanner from './components/AlarmBanner'
-import NavBar        from './components/NavBar'
+import NavBar, { ADULT_SCREEN_IDS } from './components/NavBar'
+import PinGate       from './components/PinGate'
+import Icon          from './components/Icon'
 import ProfileScreen  from './screens/ProfileScreen'
 import TodayScreen    from './screens/TodayScreen'
 import WeekScreen     from './screens/WeekScreen'
@@ -28,6 +30,10 @@ export default function App() {
   const [activeEx, setActiveEx]   = useState(null)
   const [alarm, setAlarm]           = useState(null)
   const [gameWindow, setGameWindow]   = useState(null)
+  // Strefa dorosłego (Trener, Kalibracja, Test SZ, Rodzic, Profil, Moduły) — wejście po PIN-ie.
+  // Wyjście ze strefy od razu ją blokuje, żeby dziecko nie trafiło do ustawień.
+  const [pinOpen, setPinOpen]     = useState(false)
+  const inAdultZone = ADULT_SCREEN_IDS.includes(screen)
 
   // Jednorazowe dopisanie nowych zestawów głoskowych do zapisanych ćwiczeń (bez nadpisywania treści trenera)
   useEffect(() => {
@@ -129,18 +135,39 @@ export default function App() {
       <AlarmBanner alarm={alarm} onDismiss={dismissAlarm} onGoToToday={goToToday} onStartWithGame={handleStartWithGame} soundType={alarm?.alarmSound || 'phone'} />
 
       <header className="app-header">
-        <div>
-          <h1>🎙 Speech Training Coach</h1>
-          <p>Codzienny trening mowy</p>
+        <div className="brand">
+          <div className="brand-mark"><Icon name="mic" size={20} /></div>
+          <div style={{ minWidth: 0 }}>
+            <h1>Speech Training Coach</h1>
+            <p>{inAdultZone ? 'Strefa dorosłego' : 'Codzienny trening mowy'}</p>
+          </div>
         </div>
+        {screen !== 'exercise' && (
+          inAdultZone ? (
+            <button className="zone-btn adult" onClick={() => setScreen('today')}>
+              <Icon name="lock" size={16} /> Zablokuj
+            </button>
+          ) : (
+            <button className="zone-btn" onClick={() => setPinOpen(true)} aria-label="Strefa dorosłego">
+              <Icon name="lock" size={16} /> Dorosły
+            </button>
+          )
+        )}
       </header>
+
+      {pinOpen && (
+        <PinGate
+          onUnlock={() => { setPinOpen(false); setScreen('trainer') }}
+          onClose={() => setPinOpen(false)}
+        />
+      )}
 
       <main className="screen-content">
         {renderScreen()}
       </main>
 
       {screen !== 'exercise' && (
-        <NavBar screen={screen} setScreen={setScreen} />
+        <NavBar screen={screen} setScreen={setScreen} zone={inAdultZone ? 'adult' : 'child'} />
       )}
     </div>
   )

@@ -65,7 +65,7 @@ export default function SibilantTestScreen() {
         g.fillStyle = '#F8FAFC'; g.fillRect(0, 0, w, h)
         g.fillStyle = 'rgba(234, 88, 12, .10)'; g.fillRect(0, 0, w, h * 0.38)
         g.fillStyle = 'rgba(37, 99, 235, .10)'; g.fillRect(0, h * 0.62, w, h * 0.38)
-        g.font = '800 13px Nunito, sans-serif'
+        g.font = '800 13px Manrope, sans-serif'
         g.fillStyle = COLOR_S;  g.fillText('S / C  (wysoko)', 8, 16)
         g.fillStyle = COLOR_SZ; g.fillText('SZ / CZ  (nisko)', 8, h - 8)
 

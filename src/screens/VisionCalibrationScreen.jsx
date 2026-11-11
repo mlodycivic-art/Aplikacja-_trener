@@ -101,7 +101,7 @@ export default function VisionCalibrationScreen({ exercises }) {
   if (wizardStep === 'running') {
     return (
       <div>
-        <p className="section-title">📷 Kalibracja systemu wizyjnego i mikrofonowego</p>
+        <p className="section-title">Kalibracja systemu wizyjnego i mikrofonowego</p>
         <VisionWizard
           onCancel={handleWizardCancel}
           onComplete={handleWizardComplete}
@@ -113,7 +113,7 @@ export default function VisionCalibrationScreen({ exercises }) {
 
   return (
     <div>
-      <p className="section-title">📷 Kalibracja systemu wizyjnego i mikrofonowego</p>
+      <p className="section-title">Kalibracja systemu wizyjnego i mikrofonowego</p>
       <p className="section-sub" style={{ marginBottom: 12 }}>
         Kalibracja ćwiczeń korzystających z kamery i mikrofonu — wykonuje ją wyłącznie logopeda.
       </p>

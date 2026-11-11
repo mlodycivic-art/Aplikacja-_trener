@@ -78,7 +78,7 @@ export default function ParentScreen({ user, plan }) {
 
   return (
     <div>
-      <p className="section-title">👨‍👩‍👧 Panel rodzica</p>
+      <p className="section-title">Panel rodzica</p>
       <p className="section-sub">Postępy: {user.name}</p>
 
       {/* Day progress */}

@@ -160,7 +160,7 @@ function TongueTimer({ exercise, onHalfPoints, onComplete }) {
         )}
 
         <text x={CX} y={CY + 44} textAnchor="middle"
-          fontFamily="Nunito" fontSize="13" fontWeight="900"
+          fontFamily="Manrope" fontSize="13" fontWeight="900"
           fill={phase === 'active' ? '#16A34A' : '#7C3AED'}>
           {phase === 'active' ? `AKTYWNOŚĆ  ${cycleLeft}s` : `PRZERWA  ${cycleLeft}s`}
         </text>
@@ -363,37 +363,37 @@ function SzLipTimer({ exercise, onComplete }) {
 
         {phase === 'done' ? (
           <text x={CX} y={CY + 8} textAnchor="middle"
-            fontFamily="Nunito" fontSize="20" fontWeight="900" fill="#16A34A">
+            fontFamily="Manrope" fontSize="20" fontWeight="900" fill="#16A34A">
             GOTOWE! ✓
           </text>
         ) : phase === 'idle' ? (
           <text x={CX} y={CY + 8} textAnchor="middle"
-            fontFamily="Nunito" fontSize="16" fontWeight="800" fill="#94A3B8">
+            fontFamily="Manrope" fontSize="16" fontWeight="800" fill="#94A3B8">
             Gotowy?
           </text>
         ) : isListening ? (
           <text x={CX} y={CY} textAnchor="middle"
-            fontFamily="Nunito" fontSize="30"
+            fontFamily="Manrope" fontSize="30"
             style={{ animation: 'szListenFade 1s ease-in-out infinite' }}>
             🔊
           </text>
         ) : wordVisible ? (
           <text x={CX} y={CY} textAnchor="middle"
-            fontFamily="Nunito" fontSize={currentWord.length > 6 ? 20 : 26}
+            fontFamily="Manrope" fontSize={currentWord.length > 6 ? 20 : 26}
             fontWeight="900" fill="#7C3AED"
             style={{ animation: 'szWordPulse 0.7s ease-in-out infinite' }}>
             {currentWord}
           </text>
         ) : (
           <text x={CX} y={CY} textAnchor="middle"
-            fontFamily="Nunito" fontSize="24" fill="#CBD5E1">
+            fontFamily="Manrope" fontSize="24" fill="#CBD5E1">
             ···
           </text>
         )}
 
         {showProgressInfo && (
           <text x={CX} y={CY + 28} textAnchor="middle"
-            fontFamily="Nunito" fontSize="11" fill="#94A3B8" fontWeight="700">
+            fontFamily="Manrope" fontSize="11" fill="#94A3B8" fontWeight="700">
             {wordIdx + 1}/{words.length} · seria {repIdx + 1}/{reps}
           </text>
         )}
@@ -1102,7 +1102,7 @@ function DeviceTimer({ exercise, onComplete, gameWindow }) {
             fontFamily="'Space Mono',monospace" fontSize="28" fontWeight="700" fill="#1E293B">
             {mm}:{ss2}
           </text>
-          <text x="85" y="102" textAnchor="middle" fontFamily="Nunito" fontSize="13" fill="#64748B">
+          <text x="85" y="102" textAnchor="middle" fontFamily="Manrope" fontSize="13" fill="#64748B">
             {pct}%
           </text>
         </svg>
@@ -1207,7 +1207,7 @@ export default function ExerciseScreen({ exercise, plan, setPlan, user, setUser,
         ← Wróć
       </button>
 
-      <p className="section-title">🎙 {exercise.name}</p>
+      <p className="section-title">{exercise.name}</p>
       <p className="section-sub" style={{ marginBottom: 12 }}>
         Moduł: {exercise.module} · {exercise.duration} min · +{exercise.points} pkt
       </p>

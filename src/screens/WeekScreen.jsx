@@ -51,7 +51,7 @@ export default function WeekScreen({ exercises, user, plan }) {
 
   return (
     <div>
-      <p className="section-title">📅 Plan tygodnia</p>
+      <p className="section-title">Plan tygodnia</p>
       <p className="section-sub">Harmonogram ćwiczeń, {user.name}</p>
 
       {/* Podsumowanie */}

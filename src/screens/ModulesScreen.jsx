@@ -3,7 +3,7 @@ import { MODULES } from '../data/defaultData'
 export default function ModulesScreen() {
   return (
     <div>
-      <p className="section-title">🧩 Moduły treningowe</p>
+      <p className="section-title">Moduły treningowe</p>
       <p className="section-sub">Dostępne i planowane moduły aplikacji</p>
 
       {MODULES.map(mod => (

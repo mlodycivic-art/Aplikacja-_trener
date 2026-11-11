@@ -438,7 +438,7 @@ export default function TrainerScreen({ exercises, setExercises, plan, setPlan }
 
   return (
     <div>
-      <p className="section-title">🎓 Trener</p>
+      <p className="section-title">Trener</p>
       <p className="section-sub">Harmonogram i parametry ćwiczeń</p>
 
       {(exercises || []).map(ex => (

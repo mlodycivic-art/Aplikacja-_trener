@@ -1,9 +1,10 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import Icon from '../components/Icon'
 import { calcDayStats, speechRhythmLabel } from '../data/defaultData'
 
 const STATUS_LABELS = {
   planned:   'Zaplanowane',
-  completed: 'Ukończone ✓',
+  completed: 'Ukończone',
   cancelled: 'Anulowane',
   missed:    'Nie wykonane',
 }
@@ -90,34 +91,65 @@ export default function TodayScreen({ user, plan, setPlan, setScreen, setActiveE
     closeSnooze()
   }
 
+  // Odświeżanie co 20 s — "aktywne teraz" zależy od zegara, a ekran sam się nie przerysowuje
+  const [, setTick] = useState(0)
+  useEffect(() => {
+    const id = setInterval(() => setTick(t => t + 1), 20000)
+    return () => clearInterval(id)
+  }, [])
+
+  // Karta "Teraz": jedno ćwiczenie do zrobienia i jeden duży przycisk.
+  const sortedPlan = [...plan].sort((a, b) => {
+    if (!a.hour) return 1
+    if (!b.hour) return -1
+    return a.hour.localeCompare(b.hour)
+  })
+  const nowEx  = sortedPlan.find(ex => ex.status === 'planned' && isCurrentlyActive(ex))
+  const nowMin = new Date().getHours() * 60 + new Date().getMinutes()
+  const nextEx = sortedPlan.find(ex => ex.status === 'planned' && ex.hour && minutesOf(ex.hour) > nowMin && !isCurrentlyActive(ex))
+  const allDone = stats.total > 0 && stats.pct === 100
+
   return (
     <div>
-      <p className="section-title">📋 Dzisiejszy plan</p>
+      <p className="section-title">Cześć, {user.name}</p>
       <p className="section-sub">{today}</p>
 
-      {/* Pasek postępu dnia */}
-      <div className="card card-grad-purple" style={{ marginBottom: 16 }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-          <div>
-            <div style={{ fontWeight: 800, fontSize: 14 }}>Cześć, {user.name}! 👋</div>
-            <div style={{ fontSize: 12, opacity: .85 }}>Postęp dnia</div>
+      <div className="now-card">
+        {nowEx ? (<>
+          <div className="eyebrow">Teraz</div>
+          <div className="now-title">{speechRhythmLabel(nowEx)}</div>
+          <div className="now-meta">{nowEx.duration} min · +{nowEx.points} pkt</div>
+          <button className="btn-start" onClick={() => startEx(nowEx)}>
+            <Icon name="play" size={18} /> Start
+          </button>
+        </>) : allDone ? (<>
+          <div className="eyebrow" style={{ color: '#86EFAC' }}>Plan wykonany</div>
+          <div className="now-title">Wszystko zrobione na dziś</div>
+          <div className="now-meta">+50 pkt bonusu za cały dzień</div>
+        </>) : nextEx ? (<>
+          <div className="eyebrow">Następne o {nextEx.hour}</div>
+          <div className="now-title">{speechRhythmLabel(nextEx)}</div>
+          <div className="now-meta">{nextEx.duration} min · przycisk Start pojawi się o czasie</div>
+        </>) : (<>
+          <div className="eyebrow">Dziś</div>
+          <div className="now-title">{stats.total === 0 ? 'Brak ćwiczeń w planie' : 'Na teraz nic do zrobienia'}</div>
+          <div className="now-meta">{stats.total === 0 ? 'Plan ustawia dorosły w Trenerze.' : 'Sprawdź listę poniżej.'}</div>
+        </>)}
+
+        <div className="day-row">
+          <div className="progress-wrap">
+            <div className="progress-fill" style={{ width: `${stats.pct}%` }} />
           </div>
-          <div style={{ fontWeight: 900, fontSize: 32, fontFamily: "'Space Mono', monospace" }}>{stats.pct}%</div>
-        </div>
-        <div className="progress-wrap">
-          <div className="progress-fill" style={{ width: `${stats.pct}%` }} />
-        </div>
-        <div style={{ fontSize: 12, opacity: .8, marginTop: 6 }}>
-          {stats.completed} z {stats.total} ćwiczeń ukończonych · {stats.minutes} min
+          <div className="day-pct">{stats.completed}/{stats.total}</div>
         </div>
       </div>
 
+      {plan.length > 0 && (
+        <div className="form-label" style={{ marginBottom: 10 }}>Plan dnia · {stats.minutes} min zrobione</div>
+      )}
+
       {/* Lista ćwiczeń */}
-      {[...plan].sort((a, b) => {
-        if (!a.hour) return 1
-        if (!b.hour) return -1
-        return a.hour.localeCompare(b.hour)
-      }).map(ex => {
+      {sortedPlan.map(ex => {
         const active   = isCurrentlyActive(ex)
         const inactive = ex.status === 'planned' && !active
         const showSnoozePanel = snoozeOpenId === ex.id
@@ -130,7 +162,7 @@ export default function TodayScreen({ user, plan, setPlan, setScreen, setActiveE
             <div className="ex-card-header">
               <div style={{ flex: 1 }}>
                 <div style={{ fontWeight: 800, fontSize: 15 }}>{speechRhythmLabel(ex)}</div>
-                <div className="ex-card-meta">🕐 {ex.hour || 'brak godziny'} · ⏱ {ex.duration} min · +{ex.points} pkt</div>
+                <div className="ex-card-meta">{ex.hour || 'brak godziny'} · {ex.duration} min · +{ex.points} pkt</div>
               </div>
               <span className={`chip chip-${chipClass(ex.status)}`}>{STATUS_LABELS[ex.status] || ex.status}</span>
             </div>
@@ -169,7 +201,7 @@ export default function TodayScreen({ user, plan, setPlan, setScreen, setActiveE
             {ex.status === 'missed' && (
               <div className="ex-card-actions">
                 <div style={{ fontSize: 12, color: 'var(--muted)', flex: 1, alignSelf: 'center' }}>
-                  ⏰ Alarm wygasł bez reakcji
+                  Alarm wygasł bez reakcji
                 </div>
                 <button className="btn btn-outline btn-sm" onClick={() => restoreMissed(ex)}>↩ Przywróć</button>
               </div>
@@ -178,20 +210,13 @@ export default function TodayScreen({ user, plan, setPlan, setScreen, setActiveE
             {/* Informacja dla nieaktywnych zaplanowanych */}
             {ex.status === 'planned' && inactive && (
               <div style={{ marginTop: 8, fontSize: 12, color: 'var(--muted)', fontStyle: 'italic' }}>
-                {ex.hour ? `⏰ Zaplanowane na ${ex.hour}` : '⏰ Brak ustawionej godziny — skonfiguruj w Trenerze'}
+                {ex.hour ? `Zaplanowane na ${ex.hour}` : 'Brak ustawionej godziny — ustawia dorosły w Trenerze'}
               </div>
             )}
           </div>
         )
       })}
 
-      {stats.pct === 100 && (
-        <div className="card" style={{ textAlign: 'center', border: '2px solid var(--green)' }}>
-          <div style={{ fontSize: 40, marginBottom: 6 }}>🎉</div>
-          <div style={{ fontWeight: 900, fontSize: 18, color: 'var(--green)' }}>Plan dnia wykonany!</div>
-          <div style={{ color: 'var(--muted)', fontSize: 13, marginTop: 4 }}>Świetna robota! +50 pkt bonusu</div>
-        </div>
-      )}
     </div>
   )
 }

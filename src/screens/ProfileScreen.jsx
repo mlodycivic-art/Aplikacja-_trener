@@ -41,7 +41,7 @@ export default function ProfileScreen({ user, setUser, setPlan, setExercises }) 
 
   return (
     <div>
-      <p className="section-title">👤 Profil użytkownika</p>
+      <p className="section-title">Profil użytkownika</p>
       <p className="section-sub">Dane i ustawienia konta</p>
 
       <div className="card">

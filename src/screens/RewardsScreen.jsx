@@ -11,7 +11,7 @@ export default function RewardsScreen({ user, plan }) {
 
   return (
     <div>
-      <p className="section-title">🏆 Nagrody</p>
+      <p className="section-title">Nagrody</p>
       <p className="section-sub">Twoje punkty, poziom i odznaki</p>
 
       {/* Points card */}
