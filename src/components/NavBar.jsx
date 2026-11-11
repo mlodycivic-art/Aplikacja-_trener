@@ -8,6 +8,7 @@ export default function NavBar({ screen, setScreen }) {
     { id: 'trainer', label: 'Trener',   icon: '🎓' },
     { id: 'vision',  label: 'Wizja i mikrofon', icon: '📷' },
     { id: 'parent',  label: 'Rodzic',   icon: '👨‍👩‍👧' },
+    { id: 'sibtest', label: 'Test SZ',  icon: '🎚' },
   ]
 
   return (

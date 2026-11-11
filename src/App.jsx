@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { DEFAULT_USER, DEFAULT_EXERCISES, generateTodayPlan } from './data/defaultData'
+import { DEFAULT_USER, DEFAULT_EXERCISES, generateTodayPlan, migrateExercises } from './data/defaultData'
 import { useStorage } from './hooks/useStorage'
 import { useAlarmChecker, useTitleFlash } from './components/useAlarm'
 import AlarmBanner from './components/AlarmBanner'
@@ -12,6 +12,7 @@ import RewardsScreen  from './screens/RewardsScreen'
 import TrainerScreen  from './screens/TrainerScreen'
 import VisionCalibrationScreen from './screens/VisionCalibrationScreen'
 import ParentScreen   from './screens/ParentScreen'
+import SibilantTestScreen from './screens/SibilantTestScreen'
 import ExerciseScreen from './screens/ExerciseScreen'
 
 const todayKey = () => new Date().toISOString().slice(0, 10)
@@ -27,6 +28,19 @@ export default function App() {
   const [activeEx, setActiveEx]   = useState(null)
   const [alarm, setAlarm]           = useState(null)
   const [gameWindow, setGameWindow]   = useState(null)
+
+  // Jednorazowe dopisanie nowych zestawów głoskowych do zapisanych ćwiczeń (bez nadpisywania treści trenera)
+  useEffect(() => {
+    // Wersja danych: migracja uruchamia się raz, żeby zestaw usunięty później przez trenera nie wracał
+    const DATA_VERSION = 2
+    let done = 0
+    try { done = Number(localStorage.getItem('stc_data_version') || 0) } catch (e) {}
+    if (done >= DATA_VERSION) return
+    const migrated = migrateExercises(exercises)
+    if (migrated !== exercises) setExercises(migrated)
+    try { localStorage.setItem('stc_data_version', String(DATA_VERSION)) } catch (e) {}
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   // Alarm checker — sprawdza co kilka sekund czy czas na trening
   useAlarmChecker(plan, (ex) => setAlarm(ex))
@@ -105,6 +119,7 @@ export default function App() {
       case 'trainer':  return <TrainerScreen exercises={exercises} setExercises={setExercises} plan={plan} setPlan={setPlan} />
       case 'vision':   return <VisionCalibrationScreen exercises={exercises} />
       case 'parent':   return <ParentScreen  user={user} plan={plan} />
+      case 'sibtest':  return <SibilantTestScreen />
       default:         return <TodayScreen   user={user} plan={plan} setPlan={setPlan} setScreen={setScreen} setActiveEx={setActiveEx} />
     }
   }

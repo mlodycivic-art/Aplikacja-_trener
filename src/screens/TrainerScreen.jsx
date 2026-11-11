@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { playSound } from '../components/useAlarm'
-import { DEFAULT_SOUND_SETS, generateTodayPlan } from '../data/defaultData'
+import { DEFAULT_SOUND_SETS, PROPOSED_SET_IDS, generateTodayPlan } from '../data/defaultData'
 
 const MODULE_LABELS = {
   tongue_position: '👅 Tongue Up Position',
@@ -709,6 +709,12 @@ export default function TrainerScreen({ exercises, setExercises, plan, setPlan }
               </div>
 
               <div className="divider" />
+
+              {PROPOSED_SET_IDS.includes(activeSet?.id) && (
+                <div style={{ background: '#FFF7ED', border: '1px solid #FDBA74', borderRadius: 10, padding: '10px 12px', fontSize: 13, color: '#9A3412', marginBottom: 14, fontWeight: 700 }}>
+                  Treść tego zestawu to propozycja, nie materiał z kart logopedy. Przed ćwiczeniem pokaż ją logopedzie; zdania można tu dowolnie zmieniać.
+                </div>
+              )}
 
               <label className="form-label">Poziom trudności (w ramach zestawu „{activeSet?.phoneme || '?'}”)</label>
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 14 }}>

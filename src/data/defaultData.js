@@ -35,7 +35,14 @@ export const DEFAULT_SOUND_SETS = [
   { id: 'dż', phoneme: 'dż' },
   { id: 'd',  phoneme: 'd' },
   { id: 'sz', phoneme: 'sz' },
+  { id: 'cz', phoneme: 'cz' },
+  { id: 'ż',  phoneme: 'ż' },
+  { id: 'sz_s', phoneme: 'sz–s' },
 ]
+
+// Zestawy, których treść jest PROPOZYCJĄ (ułożoną w listopadzie 2026, nie z kart logopedy).
+// Trener pokazuje przy nich informację "do zatwierdzenia przez logopedę".
+export const PROPOSED_SET_IDS = ['sz', 'cz', 'ż', 'sz_s']
 
 // ── Gotowe materiały logopedyczne — Etap I-IV ────────────────────────────────
 const Z_SHORT = [
@@ -165,6 +172,172 @@ const D_TWISTERS = [
 ]
 const D_POEM = 'Damian dostał dziś od dziadka\nDuży domek oraz statki.\nDumny Daniel dobudował\nDach i drogę dookoła.\nDzień był dobry i radosny,\nDom już gotów – bardzo mocny.'
 
+// ── Propozycje materiału: SZ, CZ, Ż/RZ oraz zestaw kontrastowy ───────────────
+// Zasada układu: w "Krótkich zdaniach" nie ma głosek syczących (s, z, c, dz),
+// żeby dziecko ćwiczyło samą głoskę szumiącą. Głoski syczące dochodzą stopniowo,
+// a w "Trudniejszych" i "Łamańcach" są celowo wymieszane (sz obok s, cz obok c, ż obok z).
+const SZ_SHORT = [
+  'Szymon ma szalik.', 'Szafa była otwarta.', 'Szpak lubi gruszki.', 'Szymek kupił szelki.',
+  'Szary kot pije mleko.', 'Szymon naprawia szufladę.', 'Mama szyje fartuszek.', 'Szymek ma nową koszulę.',
+  'Szufelka leży w wiaderku.', 'Szop pracz myje łapki.',
+]
+const SZ_MEDIUM = [
+  'Szymon włożył do szafy ciepły szalik.', 'Babcia uszyła Szymkowi nową koszulę.', 'Szpak wyleciał z gniazda na gruszy.',
+  'Myszka schowała się pod szafą.', 'Tomasz maluje szeroki szlak w górach.', 'Na szosie stoi duży szary autobus.',
+  'Łukasz szuka w szufladzie nowych kredek.', 'Szymek poszedł z tatą na szachy.', 'W koszyku leżą gruszki i kasza.',
+  'Dariusz nosi kapelusz i szelki.',
+]
+const SZ_ZSOUNDS = [
+  'Szymon szuka szalika w szerokiej szafie.', 'Łukasz i Tomasz szybko maszerują po szosie.',
+  'Szara myszka szeleści w szuwarach.', 'Nasza Agnieszka szyje szmacianą myszkę.',
+  'Szpak szuka pożywienia na szczycie gruszy.', 'Szymek pokazał Dariuszowi szkic szałasu.',
+  'W szatni wiszą szaliki, kapelusze i szelki.', 'Mateusz szepcze coś Szymonowi do ucha.',
+  'Szef kuchni szykuje szpinak i szaszłyki.', 'Na szlaku szumią drzewa i szeleszczą liście.',
+]
+const SZ_HARDER = [
+  'Szymon z Sabiną spacerowali szeroką szosą.', 'Sasza suszy szalik na słonecznym tarasie.',
+  'Staszek szuka w szkole swojego szkicownika.', 'Szósty samochód szybko skręcił w stronę szpitala.',
+  'Starszy sąsiad szykuje smaczny szaszłyk.', 'Sonia uszyła sukienkę z szerokim paskiem.',
+  'Łukasz serdecznie uściskał swojego szwagra.', 'W szklance została resztka soku z gruszek.',
+  'Szymon słyszy szum sosen i szelest liści.', 'Nasz pies Szafir szybko skacze przez strumyk.',
+]
+const SZ_TWISTERS = [
+  'Szymon szyje szary szalik.', 'Szara myszka szuka szyszki.', 'Sasza szuka suszonych gruszek.',
+  'Szeroka szosa szumi po deszczu.', 'Staszek słyszy szelest szuwarów.',
+]
+const SZ_POEM = 'Szymon włożył szary szalik,\nSzedł przez szosę do Natalii.\nSzumią drzewa, szepcze las,\nNa szarlotkę przyszedł czas.'
+
+const CZ_SHORT = [
+  'Czarek ma czapkę.', 'Czajnik już gwiżdże.', 'Czarny kot goni motyla.', 'Czesiek czyta bajkę.',
+  'Babcia piecze bułeczki.', 'Czekolada leży na półce.', 'Tata ma klucze.', 'Kaczka pływa po wodzie.',
+  'Uczeń czeka na tramwaj.', 'Paczka leży pod drzwiami.',
+]
+const CZ_MEDIUM = [
+  'Czarek założył ciepłą czapkę i rękawiczki.', 'Mama nalała herbatę z czajnika.', 'Na łące fruwają pszczoły i biedroneczki.',
+  'Uczeń czyta wieczorem ciekawą książkę.', 'Kaczka z kaczętami płynie po rzece.', 'Tata otworzył drzwi dużym kluczem.',
+  'Czesia poczęstowała gości czekoladą.', 'W czwartek pojedziemy na wycieczkę.', 'Maciek kupił paczkę czerwonych porzeczek.',
+  'Wieczorem oglądamy mecz piłki ręcznej.',
+]
+const CZ_ZSOUNDS = [
+  'Czarek czeka na czwartkową wycieczkę.', 'Czesia częstuje uczniów czekoladowymi ciasteczkami.',
+  'Czarna kaczka kroczy po czystej rzeczce.', 'Uczeń czyta czytankę o czterech pszczołach.',
+  'Wieczorem Czarek czyści czarne buty.', 'W paczce leżą klucze, haczyki i pieczątki.',
+  'Nauczyciel tłumaczy uczniom trudne zadanie.', 'Czesiek liczy czerwone guziczki w pudełeczku.',
+  'Na poczcie czeka paczka dla Czarka.', 'Czapla czujnie patrzy na rzeczkę.',
+]
+const CZ_HARDER = [
+  'Cezary czeka na Cecylię przed czytelnią.', 'Czarek z ciocią Celiną piecze czekoladowe ciasto.',
+  'Chłopiec czyści cały czajnik do czysta.', 'Co wieczór Czesia czyta cztery strony książki.',
+  'Uczniowie liczą cegły na placu budowy.', 'Czujny owczarek pilnuje owiec na hali.',
+  'Cyrkowiec w czarnej czapce żongluje piłeczkami.', 'Ojciec tłumaczy Czarkowi trudną lekcję.',
+  'Na tacy leżą cukierki, czekolada i orzeszki.', 'Ciemna noc otuliła czyste, czarne niebo.',
+]
+const CZ_TWISTERS = [
+  'Czarek czyści czarny czajnik.', 'Cztery kaczki kroczą po rzeczce.', 'Czesia częstuje ciocię czekoladą.',
+  'Cezary liczy czerwone cegły.', 'Uczeń uczy się czytać czytankę.',
+]
+const CZ_POEM = 'Czarek czapkę ma czerwoną,\nCzesia – w paski, lecz zieloną.\nCzwartek, wieczór, czas na mecz,\nCzekolada – dobra rzecz!'
+
+const ZH_SHORT = [
+  'Żaba żyje w wodzie.', 'Żaneta ma żółty balon.', 'Rzeka płynie powoli.', 'Żuk idzie po trawie.',
+  'Żyrafa je liście.', 'Jeże lubią jabłka.', 'Żółw wędruje powoli.', 'Marzena maluje morze.',
+  'Burza nadchodzi nad pole.', 'Żaglówka płynie po wodzie.',
+]
+const ZH_MEDIUM = [
+  'Żaneta narysowała żółtą żyrafę.', 'Na brzegu rzeki rosną wierzby.', 'Żuk powoli wędruje po dużym liściu.',
+  'Marzena jeździ na rowerze po podwórku.', 'Żółw schował głowę do skorupy.', 'Grzegorz przyniósł z ogrodu warzywa.',
+  'Wieczorem żaby głośno rechoczą nad rzeką.', 'Rzemieślnik naprawia drewniane krzesło.', 'Bożena położyła książki na biurku.',
+  'Po burzy na niebie pojawiła się tęcza.',
+]
+const ZH_ZSOUNDS = [
+  'Żaneta i Bożena żeglują po dużej rzece.', 'Żółta żyrafa żuje liście z drzewa.',
+  'Żuk i żaba żyją nad brzegiem rzeki.', 'Marzena marzy o podróży nad morze.',
+  'Grzegorz jeździ rowerem po leśnej drodze.', 'Na wieży leży żelazny, ciężki dzwon.',
+  'Żołnierze maszerują drogą wzdłuż rzeki.', 'Rzodkiewki i jarzyny rosną w ogrodzie Bożeny.',
+  'Żaneta pożyczyła Marzenie żółtą parasolkę.', 'Jeże i żółwie wędrują po zielonej łące.',
+]
+const ZH_HARDER = [
+  'Zuzia i Żaneta zbierają żołędzie w lesie.', 'Zenek zobaczył żabę za dużym kamieniem.',
+  'Żółta róża zakwitła w zielonym ogrodzie.', 'Bożena zawiozła warzywa na zamek.',
+  'Zimą rzeka zamarza, a żaby zasypiają.', 'Grzegorz zgubił zeszyt z rysunkiem żyrafy.',
+  'Żołnierz zdjął z wieży zardzewiały zegar.', 'Marzena z zapałem układa puzzle z żaglowcem.',
+  'Zając i jeż założyli się, kto zdąży pierwszy.', 'Zza wzgórza nadciąga burza z błyskawicami.',
+]
+const ZH_TWISTERS = [
+  'Żółta żaba żuje żurawinę.', 'Żaneta żegna żeglarzy na rzece.', 'Zuzia rysuje żyrafę i zebrę.',
+  'Rzeka rzeźbi brzeg po burzy.', 'Żuk zobaczył żabę za rzodkiewką.',
+]
+const ZH_POEM = 'Żaba z żukiem nad rzeką siedzą,\nŻe burza idzie – jeszcze nie wiedzą.\nŻółw im powiedział: „Już grzmi za wzgórzem!”\nSchowali się wszyscy pod liściem dużym.'
+
+// Zestaw kontrastowy: pary i zdania, w których głoska szumiąca stoi obok syczącej.
+// To materiał do nauki RÓŻNICY (soczek, nie socek) — najbliższy celowi rodziny.
+const MIX_SHORT = [
+  'kasa, kasza.', 'sok, szok.', 'kos, kosz.', 'nas, nasz.', 'sum, szum.',
+  'syna, szyna.', 'stuka, sztuka.', 'sale, szale.', 'plus, plusz.', 'wąs, wąż.',
+]
+const MIX_MEDIUM = [
+  'płace, płacze.', 'prace, pracze.', 'tacka, taczka.', 'packa, paczka.', 'lec, lecz.',
+  'piec, piecz.', 'cech, Czech.', 'zebra, żebra.', 'zona, żona.',
+]
+const MIX_ZSOUNDS = [
+  'Szymon pije sok, a Sabina je kaszę.', 'W kasie kupiłem kaszę i soczek.', 'Nasz kos usiadł na koszu.',
+  'Sum pływa, a las szumi.', 'Syn patrzy na szynę tramwajową.', 'Tacka leży na taczce.',
+  'Paczka czeka na poczcie od nocy.', 'Żona Zenona rysuje zebrę.', 'Zebra ma żebra, a żyrafa ma szyję.',
+  'Sasza włożył szalik i czapkę.',
+]
+const MIX_HARDER = [
+  'Soczek stoi na stoliczku.', 'Słoneczko świeci nad szosą.', 'Staszek suszy czapeczkę.',
+  'Szymon sączy soczek przez słomkę.', 'Samochodzik szybko skręcił.', 'Serniczek smakuje Czarkowi.',
+  'Sześć szklanek stoi na szafce.', 'Czemu Szymon się spóźnił?', 'Zosia pożyczyła Zuzi zeszyt.',
+  'Cezary sprzedaje czasopisma.',
+]
+const MIX_TWISTERS = [
+  'Soczek, szalik, sanki, szafa.', 'Czapka, cebula, czajnik, cukier.', 'Żaba, zebra, żuk, zegar.',
+  'Staszek sączy słodki soczek.', 'Cztery cytryny, sześć szyszek.',
+]
+const MIX_POEM = 'Soczek stoi na stoliczku,\nSzalik wisi na haczyku.\nCzapka czeka, sanki też –\nMów wyraźnie, jeśli chcesz!'
+
+// Treść nowych zestawów pod kluczami używanymi przez trenera i ćwiczenie
+const ADDED_CONTENT = {
+  content_sz_short_lines: SZ_SHORT, content_sz_medium_lines: SZ_MEDIUM, content_sz_zsounds_lines: SZ_ZSOUNDS,
+  content_sz_harder_lines: SZ_HARDER, content_sz_twisters_lines: SZ_TWISTERS, content_sz_poem_text: SZ_POEM,
+
+  content_cz_short_lines: CZ_SHORT, content_cz_medium_lines: CZ_MEDIUM, content_cz_zsounds_lines: CZ_ZSOUNDS,
+  content_cz_harder_lines: CZ_HARDER, content_cz_twisters_lines: CZ_TWISTERS, content_cz_poem_text: CZ_POEM,
+
+  'content_ż_short_lines': ZH_SHORT, 'content_ż_medium_lines': ZH_MEDIUM, 'content_ż_zsounds_lines': ZH_ZSOUNDS,
+  'content_ż_harder_lines': ZH_HARDER, 'content_ż_twisters_lines': ZH_TWISTERS, 'content_ż_poem_text': ZH_POEM,
+
+  content_sz_s_short_lines: MIX_SHORT, content_sz_s_medium_lines: MIX_MEDIUM, content_sz_s_zsounds_lines: MIX_ZSOUNDS,
+  content_sz_s_harder_lines: MIX_HARDER, content_sz_s_twisters_lines: MIX_TWISTERS, content_sz_s_poem_text: MIX_POEM,
+}
+
+// ── Migracja zapisanych ćwiczeń ──────────────────────────────────────────────
+// Ćwiczenia są trwale zapisane w przeglądarce (stc_exercises), więc nowe zestawy z kodu
+// same się tam nie pojawią. Ta funkcja dopisuje brakujące zestawy i treść TYLKO tam,
+// gdzie pole jest puste — niczego, co wpisał trener, nie nadpisuje.
+export function migrateExercises(exercises) {
+  let changed = false
+  const next = (exercises || []).map(ex => {
+    if (ex.module !== 'speech_rhythm') return ex
+    const params = { ...(ex.params || {}) }
+    let sets = params.soundSets || DEFAULT_SOUND_SETS
+    let exChanged = false
+    for (const def of DEFAULT_SOUND_SETS) {
+      if (!sets.some(s => s.id === def.id)) { sets = [...sets, def]; exChanged = true }
+    }
+    for (const [key, value] of Object.entries(ADDED_CONTENT)) {
+      const cur = params[key]
+      const empty = cur == null || (Array.isArray(cur) ? cur.every(x => !x || !String(x).trim()) : !String(cur).trim())
+      if (empty) { params[key] = value; exChanged = true }
+    }
+    if (!exChanged) return ex
+    changed = true
+    return { ...ex, params: { ...params, soundSets: sets } }
+  })
+  return changed ? next : exercises
+}
+
 export const DEFAULT_EXERCISES = [
   {
     id: 'ex_1',
@@ -253,6 +426,8 @@ export const DEFAULT_EXERCISES = [
       content_d_harder_lines:   D_HARDER,
       content_d_twisters_lines: D_TWISTERS,
       content_d_poem_text:      D_POEM,
+
+      ...ADDED_CONTENT,
 
       sentenceList: Z_SHORT,
       sentences: Z_SHORT.join(' '),
