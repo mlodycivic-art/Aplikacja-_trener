@@ -59,7 +59,7 @@ export default function ProfileScreen({ user, setUser, setPlan, setExercises }) 
               className={`type-btn ${form.type === t ? 'active' : ''}`}
               onClick={() => setForm(prev => ({ ...prev, type: t }))}
             >
-              {{ child: '🧒 Dziecko', teen: '🧑 Nastolatek', adult: '👨 Dorosły' }[t]}
+              {{ child: 'Dziecko', teen: 'Nastolatek', adult: 'Dorosły' }[t]}
             </button>
           ))}
         </div>
@@ -86,14 +86,14 @@ export default function ProfileScreen({ user, setUser, setPlan, setExercises }) 
 
       {/* Stats summary */}
       <div className="card">
-        <h3 style={{ fontWeight: 800, marginBottom: 12 }}>📈 Twoje statystyki</h3>
+        <h3 style={{ fontWeight: 800, marginBottom: 12 }}>Twoje statystyki</h3>
         <div className="row-list-item">
           <span className="rli-label">Punkty łącznie</span>
-          <span className="rli-val">🏆 {user.points} pkt</span>
+          <span className="rli-val">{user.points} pkt</span>
         </div>
         <div className="row-list-item">
           <span className="rli-label">Odznaki</span>
-          <span className="rli-val">🎖 {(user.badges || []).length}</span>
+          <span className="rli-val">{(user.badges || []).length}</span>
         </div>
         <div className="row-list-item" style={{ borderBottom: 'none' }}>
           <span className="rli-label">Konto od</span>
@@ -103,12 +103,12 @@ export default function ProfileScreen({ user, setUser, setPlan, setExercises }) 
 
       {/* Reset */}
       <div className="card" style={{ border: '1.5px solid #FEE2E2' }}>
-        <h3 style={{ fontWeight: 800, marginBottom: 6, color: 'var(--red)' }}>⚠️ Strefa niebezpieczna</h3>
+        <h3 style={{ fontWeight: 800, marginBottom: 6, color: 'var(--red)' }}>Strefa niebezpieczna</h3>
         <p style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 12 }}>
           Resetuje wszystkie dane i przywraca dane demonstracyjne. Tej operacji nie można cofnąć.
         </p>
         <button className="btn btn-full" style={{ background: '#FEF2F2', color: 'var(--red)', fontWeight: 800 }} onClick={reset}>
-          🔄 Reset demo data
+          Reset demo data
         </button>
       </div>
     </div>

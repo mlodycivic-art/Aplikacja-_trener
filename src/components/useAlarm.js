@@ -156,3 +156,46 @@ export function useTitleFlash(active, flashText = '⏰ Czas na trening!') {
     }
   }, [active, flashText])
 }
+
+// ── Krótkie dźwięki gier (korzystają z tego samego, wspólnego AudioContext) ───
+// kind: 'roll' (toczenie kuli) | 'crash' (uderzenie w kręgle, strength 0–1) |
+//       'pump' (dopompowanie balonu, strength 0–1 = wysokość tonu) | 'gutter'
+export function playGameSound(kind, strength = 1) {
+  try {
+    const ctx = unlockedCtx || (unlockedCtx = new (window.AudioContext || window.webkitAudioContext)())
+    if (ctx.state === 'suspended') ctx.resume()
+    const t0 = ctx.currentTime
+
+    const noise = (dur, filterType, freq, gainFrom, gainTo) => {
+      const buf = ctx.createBuffer(1, Math.max(1, Math.floor(ctx.sampleRate * dur)), ctx.sampleRate)
+      const d = buf.getChannelData(0)
+      for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1
+      const src = ctx.createBufferSource()
+      src.buffer = buf
+      const f = ctx.createBiquadFilter()
+      f.type = filterType
+      f.frequency.value = freq
+      const g = ctx.createGain()
+      g.gain.setValueAtTime(gainFrom, t0)
+      g.gain.exponentialRampToValueAtTime(Math.max(0.0001, gainTo), t0 + dur)
+      src.connect(f); f.connect(g); g.connect(ctx.destination)
+      src.start(t0)
+    }
+    const tone = (freqFrom, freqTo, dur, gain, wave = 'sine') => {
+      const osc = ctx.createOscillator()
+      const g = ctx.createGain()
+      osc.type = wave
+      osc.frequency.setValueAtTime(freqFrom, t0)
+      osc.frequency.exponentialRampToValueAtTime(freqTo, t0 + dur)
+      g.gain.setValueAtTime(gain, t0)
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur)
+      osc.connect(g); g.connect(ctx.destination)
+      osc.start(t0); osc.stop(t0 + dur + 0.02)
+    }
+
+    if (kind === 'roll')   noise(1.1, 'lowpass', 220, 0.05, 0.22)
+    if (kind === 'crash')  { noise(0.45, 'bandpass', 1800, 0.15 + 0.35 * strength, 0.001); tone(180, 70, 0.25, 0.2 * strength, 'triangle') }
+    if (kind === 'gutter') tone(160, 90, 0.35, 0.18, 'triangle')
+    if (kind === 'pump')   tone(300 + 500 * strength, 420 + 620 * strength, 0.16, 0.18, 'sine')
+  } catch (e) {}
+}

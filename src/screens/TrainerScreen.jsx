@@ -3,26 +3,26 @@ import { playSound } from '../components/useAlarm'
 import { DEFAULT_SOUND_SETS, PROPOSED_SET_IDS, generateTodayPlan } from '../data/defaultData'
 
 const MODULE_LABELS = {
-  tongue_position: '👅 Tongue Up Position',
-  sz_lip:          '👄 SZ Lip Shape',
-  speech_rhythm:   '🎵 Speech Rhythm',
-  mechanical:      '⚙️ Mechanical Tongue Trainer',
-  froggy_mouth:    '🐸 Froggy Mouth',
+  tongue_position: 'Tongue Up Position',
+  sz_lip:          'SZ Lip Shape',
+  speech_rhythm:   'Speech Rhythm',
+  mechanical:      'Mechanical Tongue Trainer',
+  froggy_mouth:    'Froggy Mouth',
 }
 
 const DAYS_PL = ['Pon', 'Wt', 'Śr', 'Czw', 'Pt', 'Sob', 'Nd']
 
 const SOUND_OPTIONS = [
-  { value: 'bell',      label: '🔔 Klasyczny dzwonek' },
-  { value: 'phone',     label: '📞 Stary telefon' },
-  { value: 'soft',      label: '🎵 Miękki ton' },
-  { value: 'beep',      label: '🔊 Podwójne piknięcie' },
-  { value: 'alarm',     label: '🚨 Głośny alarm' },
-  { value: 'chime',     label: '🎐 Delikatny czime' },
-  { value: 'siren',     label: '🚓 Syrena' },
-  { value: 'xylophone', label: '🎶 Ksylofon' },
-  { value: 'digital',   label: '📟 Cyfrowy puls' },
-  { value: 'whistle',   label: '📢 Gwizdek' },
+  { value: 'bell',      label: 'Klasyczny dzwonek' },
+  { value: 'phone',     label: 'Stary telefon' },
+  { value: 'soft',      label: 'Miękki ton' },
+  { value: 'beep',      label: 'Podwójne piknięcie' },
+  { value: 'alarm',     label: 'Głośny alarm' },
+  { value: 'chime',     label: 'Delikatny czime' },
+  { value: 'siren',     label: 'Syrena' },
+  { value: 'xylophone', label: 'Ksylofon' },
+  { value: 'digital',   label: 'Cyfrowy puls' },
+  { value: 'whistle',   label: 'Gwizdek' },
 ]
 
 const ADVANCE_OPTIONS = [
@@ -447,7 +447,7 @@ export default function TrainerScreen({ exercises, setExercises, plan, setPlan }
             <div style={{ flex: 1 }}>
               <div style={{ fontWeight: 800, fontSize: 15 }}>{MODULE_LABELS[ex.module] || ex.name}</div>
               <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 3 }}>
-                ⏱ ~{ex.duration} min · {(ex.schedule || []).length === 0 ? 'Brak harmonogramu — skonfiguruj w Trenerze' : `${(ex.schedule || []).length} slotów`}
+                ~{ex.duration} min · {(ex.schedule || []).length === 0 ? 'Brak harmonogramu — skonfiguruj w Trenerze' : `${(ex.schedule || []).length} slotów`}
               </div>
               <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 4 }}>
                 {DAYS_PL.map((d, i) => {
@@ -473,19 +473,19 @@ export default function TrainerScreen({ exercises, setExercises, plan, setPlan }
               <div style={{ marginTop: 4, fontSize: 11 }}>
                 {ex.alarmEnabled !== false
                   ? <span style={{ color: 'var(--primary)' }}>
-                      🔔 {SOUND_OPTIONS.find(s => s.value === (ex.alarmSound || 'phone'))?.label}
+                      {SOUND_OPTIONS.find(s => s.value === (ex.alarmSound || 'phone'))?.label}
                       {' · '}
                       {ADVANCE_OPTIONS.find(a => a.value === (ex.alarmAdvanceSec ?? 30))?.label}
                     </span>
-                  : <span style={{ color: 'var(--muted)' }}>🔕 Alarm wyłączony</span>
+                  : <span style={{ color: 'var(--muted)' }}>Alarm wyłączony</span>
                 }
               </div>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-              <button className="btn btn-outline btn-sm" onClick={() => openEdit(ex)}>✏️ Edytuj</button>
+              <button className="btn btn-outline btn-sm" onClick={() => openEdit(ex)}>Edytuj</button>
               {ex.module === 'speech_rhythm' && plan.filter(e => e.module === 'speech_rhythm').length > 1 && (
                 <button className="btn btn-sm" style={{ background: '#FEF2F2', color: 'var(--red)' }}
-                  onClick={() => deleteExercise(ex)}>🗑 Usuń</button>
+                  onClick={() => deleteExercise(ex)}>Usuń</button>
               )}
             </div>
           </div>
@@ -495,7 +495,7 @@ export default function TrainerScreen({ exercises, setExercises, plan, setPlan }
       {selected && editEx && (
         <div className="modal-overlay" onClick={closeEdit}>
           <div className="modal-box" onClick={e => e.stopPropagation()}>
-            <h3>✏️ {MODULE_LABELS[editEx.module] || editEx.name}</h3>
+            <h3>{MODULE_LABELS[editEx.module] || editEx.name}</h3>
 
             <label className="form-label">Harmonogram tygodniowy</label>
 
@@ -676,7 +676,7 @@ export default function TrainerScreen({ exercises, setExercises, plan, setPlan }
                 const total = szTotalSec(form.params)
                 return (
                   <div style={{ background: '#EEF2FF', borderRadius: 10, padding: '10px 12px', marginTop: 12, marginBottom: 12, fontSize: 13, color: 'var(--primary)', fontWeight: 700 }}>
-                    ⏱ Szacowany czas treningu: ~{Math.ceil(total / 60)} min ({Math.round(total)}s)
+                    Szacowany czas treningu: ~{Math.ceil(total / 60)} min ({Math.round(total)}s)
                   </div>
                 )
               })()}
@@ -704,7 +704,7 @@ export default function TrainerScreen({ exercises, setExercises, plan, setPlan }
                   placeholder="np. z, dz, sz, dż..." />
                 {(form.params?.soundSets || []).length > 1 && (
                   <button className="btn btn-sm" style={{ background: '#FEF2F2', color: 'var(--red)' }}
-                    onClick={deleteActiveSet}>🗑</button>
+                    onClick={deleteActiveSet}></button>
                 )}
               </div>
 
@@ -800,7 +800,7 @@ export default function TrainerScreen({ exercises, setExercises, plan, setPlan }
                 const total = rhythmTotalSec(form.params)
                 return (
                   <div style={{ background: '#EEF2FF', borderRadius: 10, padding: '10px 12px', marginTop: 12, marginBottom: 12, fontSize: 13, color: 'var(--primary)', fontWeight: 700 }}>
-                    ⏱ Szacowany czas treningu: ~{Math.ceil(total / 60)} min ({Math.round(total)}s)
+                    Szacowany czas treningu: ~{Math.ceil(total / 60)} min ({Math.round(total)}s)
                   </div>
                 )
               })()}
@@ -815,7 +815,7 @@ export default function TrainerScreen({ exercises, setExercises, plan, setPlan }
             <div className="divider" />
 
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
-              <span style={{ fontWeight: 800, fontSize: 14 }}>📷 System wizyjny</span>
+              <span style={{ fontWeight: 800, fontSize: 14 }}>System wizyjny</span>
               <button
                 className={`btn btn-sm ${form.visionEnabled ? 'btn-primary' : 'btn-ghost'}`}
                 onClick={() => setForm(p => ({ ...p, visionEnabled: !p.visionEnabled }))}>
@@ -829,7 +829,7 @@ export default function TrainerScreen({ exercises, setExercises, plan, setPlan }
 
             {editEx.module === 'sz_lip' && form.visionEnabled && (<>
               <div className="divider" />
-              <span style={{ fontWeight: 800, fontSize: 14, display: 'block', marginBottom: 10 }}>🎈 Ustawienia gry (balon)</span>
+              <span style={{ fontWeight: 800, fontSize: 14, display: 'block', marginBottom: 10 }}>Ustawienia gry (balon)</span>
 
               <label className="form-label">Czas dzióbka + głoski (sekundy)</label>
               <input className="form-input" type="number" min={0.5} max={5} step={0.5}
@@ -868,8 +868,8 @@ export default function TrainerScreen({ exercises, setExercises, plan, setPlan }
               <label className="form-label">Postać w grze</label>
               <div style={{ display: 'flex', gap: 6, marginBottom: 4 }}>
                 {[
-                  { id: 'boy',  label: '👦 Chłopiec' },
-                  { id: 'girl', label: '👧 Dziewczynka' },
+                  { id: 'boy',  label: 'Chłopiec' },
+                  { id: 'girl', label: 'Dziewczynka' },
                 ].map(c => (
                   <button key={c.id}
                     className={`type-btn ${(form.params?.character || 'boy') === c.id ? 'active' : ''}`}
@@ -884,7 +884,7 @@ export default function TrainerScreen({ exercises, setExercises, plan, setPlan }
             <div className="divider" />
 
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-              <span style={{ fontWeight: 800, fontSize: 14 }}>🔔 Alarm</span>
+              <span style={{ fontWeight: 800, fontSize: 14 }}>Alarm</span>
               <button
                 className={`btn btn-sm ${form.alarmEnabled ? 'btn-primary' : 'btn-ghost'}`}
                 onClick={() => setForm(p => ({ ...p, alarmEnabled: !p.alarmEnabled }))}>
@@ -927,8 +927,8 @@ export default function TrainerScreen({ exercises, setExercises, plan, setPlan }
         </div>
       )}
 
-      <div className="card" style={{ background: '#F5F3FF', border: '1.5px solid #DDD6FE', marginTop: 4 }}>
-        <h3 style={{ fontWeight: 800, marginBottom: 8, color: 'var(--purple)' }}>ℹ️ Informacje</h3>
+      <div className="card" style={{ marginTop: 4 }}>
+        <h3 style={{ fontWeight: 800, marginBottom: 8 }}>Informacje</h3>
         <p style={{ fontSize: 13, color: 'var(--muted)', lineHeight: 1.6 }}>
           Każdy zestaw głoskowy w Speech Rhythm ma własne 5 poziomów treści. Możesz dodawać kolejne zestawy
           (np. dla nowych głosek) przyciskiem "+ Dodaj zestaw". Jeśli alarm przypominający dzwoni 5 minut bez

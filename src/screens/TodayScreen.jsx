@@ -191,7 +191,7 @@ export default function TodayScreen({ user, plan, setPlan, setScreen, setActiveE
                 </div>
                 {snoozeError && (
                   <div style={{ fontSize: 11, color: 'var(--red)', fontWeight: 700, marginTop: 8 }}>
-                    ⚠ {snoozeError}
+                    {snoozeError}
                   </div>
                 )}
               </div>

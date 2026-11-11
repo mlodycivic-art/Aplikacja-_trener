@@ -53,14 +53,14 @@ export default function AlarmBanner({ alarm, onDismiss, onGoToToday, onStartWith
       <div style={{
         position: 'fixed', top: 0, left: '50%',
         transform: 'translateX(-50%)',
-        width: '100%', maxWidth: 480, zIndex: 300,
+        width: '100%', maxWidth: 'var(--app-width)', zIndex: 300,
         animation: 'bannerShake 0.7s ease infinite',
       }}>
         <div style={{
-          background: 'linear-gradient(135deg, #6C63FF, #9B8FFF)',
+          background: 'var(--orange)',
           color: '#fff', padding: '13px 16px',
           display: 'flex', alignItems: 'center', gap: 10,
-          boxShadow: '0 4px 32px rgba(108,99,255,.6)',
+          boxShadow: '0 6px 24px rgba(234,88,12,.45)',
           animation: 'bannerPulse 1.2s ease infinite',
         }}>
           <span style={{
@@ -80,7 +80,7 @@ export default function AlarmBanner({ alarm, onDismiss, onGoToToday, onStartWith
 
           {alarm.params?.gameLink && onStartWithGame && (
             <button onClick={() => { clearInterval(intervalRef.current); onStartWithGame(alarm) }} style={{
-              background: '#22C55E', color: '#fff', border: 'none',
+              background: 'var(--ink)', color: '#fff', border: 'none',
               borderRadius: 8, padding: '7px 13px', fontWeight: 900,
               fontSize: 12, cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0,
             }}>
@@ -90,7 +90,7 @@ export default function AlarmBanner({ alarm, onDismiss, onGoToToday, onStartWith
 
           {!(alarm.params?.gameLink && onStartWithGame) && (
             <button onClick={onGoToToday} style={{
-              background: '#fff', color: '#6C63FF', border: 'none',
+              background: '#fff', color: '#9A3412', border: 'none',
               borderRadius: 8, padding: '7px 13px', fontWeight: 900,
               fontSize: 12, cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0,
             }}>

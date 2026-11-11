@@ -1,4 +1,19 @@
+// Ekran "Postępy" (dawniej Nagrody) — to, co ćwiczący chce zobaczyć o sobie:
+// seria dni, tydzień, rekordy z gier i ćwiczeń, a dopiero potem punkty i odznaki.
+
 import { BADGE_DEFS, LEVELS, getLevel } from '../data/defaultData'
+import { buildWeek, currentStreak } from '../data/weekReport'
+import { useResults } from '../data/resultsStore'
+import Icon from '../components/Icon'
+
+function Record({ value, label, color = 'var(--primary)' }) {
+  return (
+    <div className="stat-card">
+      <div className="val" style={{ color, fontFamily: "'Space Mono', monospace" }}>{value}</div>
+      <div className="lbl">{label}</div>
+    </div>
+  )
+}
 
 export default function RewardsScreen({ user, plan }) {
   const lvl      = getLevel(user.points)
@@ -6,82 +21,93 @@ export default function RewardsScreen({ user, plan }) {
   const pctInLvl = nextLvl
     ? Math.round(((user.points - lvl.min) / (nextLvl.min - lvl.min)) * 100)
     : 100
-  const earned   = user.badges || []
-  const totalDone = plan.filter(e => e.status === 'completed').length
+  const earned = user.badges || []
+
+  const week   = buildWeek(plan)
+  const streak = currentStreak(plan)
+  // Rekordy liczone z całej historii (nie tylko z tygodnia)
+  const throws   = useResults('bowling_throw')
+  const balloons = useResults('balloon_game')
+  const trials   = useResults('mix_trial')
+  const strikes  = throws.filter(t => t.data.pins === 10).length
+  const balloonsDone = balloons.filter(b => b.data.completed).length
+  const fixedWords = trials.filter(t => t.data.selfRating === 'good' && t.data.attempts > 1).length
+  const goodWords  = trials.filter(t => t.data.selfRating === 'good').length
+  const max = Math.max(1, ...week.days.map(d => d.total))
 
   return (
     <div>
-      <p className="section-title">Nagrody</p>
-      <p className="section-sub">Twoje punkty, poziom i odznaki</p>
+      <p className="section-title">Postępy</p>
+      <p className="section-sub">Twoja seria, tydzień i rekordy</p>
 
-      {/* Points card */}
-      <div className="card card-grad-yellow" style={{ textAlign: 'center' }}>
-        <div style={{ fontSize: 56, fontWeight: 900, fontFamily: "'Space Mono', monospace" }}>
-          {user.points}
-        </div>
-        <div style={{ fontWeight: 700, fontSize: 16 }}>punktów</div>
-        <div style={{ margin: '10px 0 4px' }}>
-          <div className="progress-wrap" style={{ background: 'rgba(120,53,15,.2)' }}>
-            <div className="progress-fill" style={{ width: `${pctInLvl}%`, background: '#78350F' }} />
+      {/* Seria + tydzień */}
+      <div className="now-card">
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+          <div>
+            <div className="eyebrow">Seria</div>
+            <div style={{ fontFamily: "'Space Mono', monospace", fontWeight: 700, fontSize: 44, lineHeight: 1.1 }}>
+              {streak}<span style={{ fontSize: 16, color: '#CBD5E1', fontFamily: 'inherit' }}> {streak === 1 ? 'dzień' : 'dni'} z rzędu</span>
+            </div>
+          </div>
+          <div style={{ textAlign: 'right' }}>
+            <div className="eyebrow">Ten tydzień</div>
+            <div style={{ fontWeight: 800, fontSize: 18 }}>{week.totals.completed} ćwiczeń</div>
           </div>
         </div>
-        <div style={{ fontSize: 12, opacity: .8 }}>
-          Poziom {lvl.level} — {lvl.label}
-          {nextLvl && ` · ${nextLvl.min - user.points} pkt do Poziomu ${nextLvl.level}`}
+        <div style={{ display: 'flex', alignItems: 'flex-end', gap: 6, height: 70, marginTop: 16 }}>
+          {week.days.map(d => (
+            <div key={d.key} style={{ flex: 1, height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', alignItems: 'center', gap: 4 }}>
+              <div style={{ width: '100%', maxWidth: 30, height: `${Math.max(6, (d.total / max) * 100)}%`, background: 'rgba(255,255,255,.14)', borderRadius: 6, display: 'flex', alignItems: 'flex-end', overflow: 'hidden' }}>
+                <div style={{ width: '100%', height: `${d.total ? (d.completed / d.total) * 100 : 0}%`, background: '#22C55E' }} />
+              </div>
+              <span style={{ fontSize: 11, color: '#94A3B8', fontWeight: 700 }}>{d.weekday}</span>
+            </div>
+          ))}
         </div>
       </div>
 
-      {/* Stats */}
+      {/* Rekordy */}
+      <div className="form-label" style={{ marginBottom: 10 }}>Rekordy</div>
       <div className="stats-grid">
-        <div className="stat-card">
-          <div className="val">✅ {totalDone}</div>
-          <div className="lbl">Ukończone ćwiczenia</div>
+        <Record value={strikes} label="Strike w kręglach" />
+        <Record value={balloonsDone} label="Napompowane balony" color="var(--orange)" />
+        <Record value={goodWords} label="Słowa ocenione jako dobre" color="var(--green)" />
+        <Record value={fixedWords} label="Słowa poprawione po odsłuchu" color="var(--blue)" />
+      </div>
+
+      {/* Punkty i poziom */}
+      <div className="card">
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+          <div style={{ fontWeight: 800, fontSize: 16 }}>Poziom {lvl.level} — {lvl.label}</div>
+          <div style={{ fontFamily: "'Space Mono', monospace", fontWeight: 700, fontSize: 20 }}>{user.points} pkt</div>
         </div>
-        <div className="stat-card">
-          <div className="val">⭐ {lvl.level}</div>
-          <div className="lbl">Aktualny poziom</div>
+        <div className="progress-wrap dark" style={{ margin: '10px 0 6px' }}>
+          <div className="progress-fill colored" style={{ width: `${pctInLvl}%` }} />
         </div>
-        <div className="stat-card">
-          <div className="val">🎖 {earned.length}</div>
-          <div className="lbl">Zdobyte odznaki</div>
-        </div>
-        <div className="stat-card">
-          <div className="val">{pctInLvl}%</div>
-          <div className="lbl">Do następnego poziomu</div>
+        <div className="text-muted" style={{ fontSize: 13 }}>
+          {nextLvl ? `${nextLvl.min - user.points} pkt do poziomu ${nextLvl.level} (${nextLvl.label})` : 'Najwyższy poziom'}
         </div>
       </div>
 
-      {/* Levels */}
+      {/* Odznaki */}
       <div className="card">
-        <h3 style={{ fontWeight: 800, marginBottom: 12 }}>📊 Poziomy</h3>
-        {LEVELS.map(l => (
-          <div key={l.level} className="row-list-item">
-            <span className="rli-label">
-              {l.level === lvl.level ? '👉 ' : ''}Poziom {l.level} — {l.label}
-            </span>
-            <span className="rli-val" style={{ fontSize: 12 }}>
-              {l.max === Infinity ? `${l.min}+ pkt` : `${l.min}–${l.max} pkt`}
-            </span>
-          </div>
-        ))}
-      </div>
-
-      {/* Badges */}
-      <div className="card">
-        <h3 style={{ fontWeight: 800, marginBottom: 12 }}>🎖 Odznaki</h3>
+        <div style={{ fontWeight: 800, fontSize: 16, marginBottom: 8 }}>Odznaki · {earned.length} z {BADGE_DEFS.length}</div>
         {BADGE_DEFS.map(b => {
           const isEarned = earned.includes(b.id)
           return (
             <div key={b.id} className="row-list-item">
-              <div>
-                <span className={`badge-pill ${isEarned ? 'badge-earned' : 'badge-locked'}`}>
-                  {b.emoji} {b.label}
-                </span>
-                <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 2, paddingLeft: 4 }}>{b.desc}</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div style={{
+                  width: 34, height: 34, borderRadius: 10, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  background: isEarned ? 'var(--yellow)' : '#EEF0F3', color: isEarned ? '#451A03' : '#94A3B8',
+                }}>
+                  <Icon name={isEarned ? 'check' : 'lock'} size={18} />
+                </div>
+                <div>
+                  <div style={{ fontWeight: 800, color: isEarned ? 'var(--text)' : 'var(--muted)' }}>{b.label}</div>
+                  <div style={{ fontSize: 12, color: 'var(--muted)' }}>{b.desc}</div>
+                </div>
               </div>
-              <span style={{ fontSize: 12, color: isEarned ? 'var(--green)' : 'var(--muted)', fontWeight: 800 }}>
-                {isEarned ? '✓' : '🔒'}
-              </span>
             </div>
           )
         })}

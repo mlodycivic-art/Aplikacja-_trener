@@ -3,6 +3,10 @@ import { calcDayStats } from '../data/defaultData'
 import { playSound, useTitleFlash, playApplause } from '../components/useAlarm'
 import { useMicRhythm } from './games/useMicRhythm'
 import BowlingReward, { pinsForPct } from './games/BowlingReward'
+import BalloonGame from './games/BalloonGame'
+import MixSpeechExercise from './MixSpeechExercise'
+import { addResult } from '../data/resultsStore'
+import { performancePoints } from '../data/points'
 
 const TAU = 2 * Math.PI
 
@@ -351,7 +355,7 @@ function SzLipTimer({ exercise, onComplete }) {
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 8 }}>
         <button className="btn btn-ghost btn-sm" style={{ fontSize: 11 }}
           onClick={() => setSpeakOn(s => !s)}>
-          {speakOn ? '🔊 Czytanie: WŁ' : '🔇 Czytanie: WYŁ'}
+          {speakOn ? 'Czytanie: WŁ' : 'Czytanie: WYŁ'}
         </button>
       </div>
 
@@ -375,7 +379,7 @@ function SzLipTimer({ exercise, onComplete }) {
           <text x={CX} y={CY} textAnchor="middle"
             fontFamily="Manrope" fontSize="30"
             style={{ animation: 'szListenFade 1s ease-in-out infinite' }}>
-            🔊
+            
           </text>
         ) : wordVisible ? (
           <text x={CX} y={CY} textAnchor="middle"
@@ -407,8 +411,8 @@ function SzLipTimer({ exercise, onComplete }) {
           : phase === 'idle'
           ? 'Kliknij Start, aby zacząć'
           : isListening
-          ? '🔊 Słuchaj lektora...'
-          : `🗣 Powtórz: "${currentWord}"`}
+          ? 'Słuchaj lektora...'
+          : `Powtórz: "${currentWord}"`}
       </div>
 
       {phase === 'done' ? (
@@ -862,7 +866,7 @@ function RhythmTimer({ exercise, onComplete }) {
             background: withNarrator ? '#EEF2FF' : '#F0FDF4',
             color:      withNarrator ? 'var(--primary)' : 'var(--green)',
           }}>
-            {withNarrator ? '🔊 Z lektorem' : '🗣 Samodzielnie (bez lektora)'}
+            {withNarrator ? 'Z lektorem' : 'Samodzielnie (bez lektora)'}
           </span>
         </div>
       )}
@@ -942,7 +946,7 @@ function RhythmTimer({ exercise, onComplete }) {
       </div>
 
       {showThrow ? (
-        <BowlingReward pct={throwPct} onDone={handleThrowDone} />
+        <BowlingReward key={throwHistoryRef.current.length} pct={throwPct} onDone={handleThrowDone} history={throwHistoryRef.current} />
       ) : phase === 'done' ? (
         <div>
           <p style={{ textAlign: 'center', fontSize: 13, color: 'var(--muted)', marginBottom: 10 }}>
@@ -958,6 +962,45 @@ function RhythmTimer({ exercise, onComplete }) {
           {running ? '⏸ Pauza' : (phase === 'idle' ? '▶ Start' : '▶ Wznów')}
         </button>
       )}
+    </div>
+  )
+}
+
+// ── SZ Lip Shape: wybór trybu (zwykłe powtarzanie / gra Balon z kamerą) ──────
+// Gra jest dostępna, gdy trener włączył dla ćwiczenia system wizyjny, a logopeda
+// przeprowadził kalibrację (strefa dorosłego → Kalibracja).
+function SzLipExercise({ exercise, onComplete }) {
+  const [mode, setMode] = useState(null) // null | 'classic' | 'balloon'
+
+  let calibration = null
+  let simMode = false
+  try {
+    const all = JSON.parse(localStorage.getItem('stc_vision_calibrations') || '{}')
+    calibration = all[exercise.templateId] || all[exercise.id] || null
+    simMode = localStorage.getItem('stc_debug_sim') === '1'
+  } catch (e) {}
+  const calibrated = calibration?.status === 'calibrated'
+
+  if (!exercise.visionEnabled || mode === 'classic') return <SzLipTimer exercise={exercise} onComplete={onComplete} />
+  if (mode === 'balloon') {
+    return <BalloonGame exercise={exercise} ageGroup={calibration?.ageGroup} onComplete={onComplete} onExit={() => setMode(null)} />
+  }
+
+  return (
+    <div className="card">
+      <div style={{ fontWeight: 800, fontSize: 17, marginBottom: 12 }}>Wybierz tryb</div>
+      <button className="btn btn-primary btn-full" style={{ padding: '16px 20px', fontSize: 16 }}
+        disabled={!calibrated && !simMode} onClick={() => setMode('balloon')}>
+        Gra: Balon (kamera)
+      </button>
+      {!calibrated && !simMode && (
+        <div className="text-muted" style={{ fontSize: 13, marginTop: 6 }}>
+          Gra wymaga kalibracji przez logopedę: strefa dorosłego → Kalibracja.
+        </div>
+      )}
+      <button className="btn btn-outline btn-full mt-12" onClick={() => setMode('classic')}>
+        Zwykłe powtarzanie za lektorem
+      </button>
     </div>
   )
 }
@@ -1023,7 +1066,7 @@ function DeviceTimer({ exercise, onComplete, gameWindow }) {
   }, [ended])
 
   // Migający tytuł karty — widoczny nawet gdy użytkownik jest na innej karcie (np. w grze)
-  useTitleFlash(ended, '⏰ KONIEC TRENINGU!')
+  useTitleFlash(ended, 'KONIEC TRENINGU!')
 
   const toggleRunning = () => {
     if (running) {
@@ -1064,7 +1107,7 @@ function DeviceTimer({ exercise, onComplete, gameWindow }) {
     const overtimeStr = om > 0 ? `${om} min ${os} sek` : `${os} sek`
     return (
       <div className="card" style={{ textAlign: 'center' }}>
-        <div style={{ fontSize: 48, marginBottom: 8 }}>⏰</div>
+        <div style={{ fontSize: 48, marginBottom: 8 }}></div>
         <div style={{ fontWeight: 900, fontSize: 18, color: 'var(--red)', marginBottom: 6 }}>Czas minął!</div>
         {overtimeDisplay > 0 && (
           <div style={{ fontWeight: 800, fontSize: 14, color: 'var(--orange)', marginBottom: 8 }}>
@@ -1077,13 +1120,13 @@ function DeviceTimer({ exercise, onComplete, gameWindow }) {
             padding: '8px 12px', background: '#F8FAFC', borderRadius: 8,
             border: '1px solid var(--border)',
           }}>
-            💡 Możesz teraz zamknąć kartę z grą
+            Możesz teraz zamknąć kartę z grą
           </div>
         )}
         <div style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 16 }}>
           Kliknij, aby zatrzymać alarm i zakończyć ćwiczenie
         </div>
-        <button className="btn btn-green btn-full" onClick={dismissAndComplete}>🔕 Zatrzymaj i zakończ</button>
+        <button className="btn btn-green btn-full" onClick={dismissAndComplete}>Zatrzymaj i zakończ</button>
       </div>
     )
   }
@@ -1109,7 +1152,7 @@ function DeviceTimer({ exercise, onComplete, gameWindow }) {
       </div>
       {totalSec > 60 && (
         <div style={{ textAlign: 'center', fontSize: 11, color: 'var(--muted)', marginTop: 6 }}>
-          🔔 Przypomnienie ~1 min przed końcem · 🔔 Alarm na koniec (wymaga potwierdzenia)
+          Przypomnienie ~1 min przed końcem · Alarm na koniec (wymaga potwierdzenia)
         </div>
       )}
       <button className="btn btn-primary btn-full mt-8" onClick={toggleRunning}>
@@ -1144,6 +1187,8 @@ function buildInstruction(exercise) {
 export default function ExerciseScreen({ exercise, plan, setPlan, user, setUser, setScreen, gameWindow }) {
   const [finished,  setFinished]  = useState(false)
   const [earnedPts, setEarnedPts] = useState(0)
+  // Początek tego podejścia do ćwiczenia — punkty z wyniku liczymy tylko z wpisów zapisanych od tej chwili
+  const startedAtRef = useRef(Date.now())
 
   if (!exercise) {
     return (
@@ -1175,13 +1220,18 @@ export default function ExerciseScreen({ exercise, plan, setPlan, user, setUser,
     if (totalDone >= 7) add('seven_trainings')
     if (dayStats.pct === 100) add('full_day')
     setUser(prev => ({ ...prev, points: newPoints, badges: earned }))
+    addResult('exercise_done', { templateId: exercise.templateId || exercise.id, module: exercise.module, name: exercise.name, points: pts + bonus })
     setEarnedPts(pts + bonus)
     playApplause()
     setFinished(true)
   }
 
   const handleHalfPoints = () => setUser(prev => ({ ...prev, points: prev.points + 5 }))
-  const handleComplete = (extended, gameTabClosed, overtimeSec = 0) => finishAndAward(isDeviceExercise ? 20 : 5, extended, gameTabClosed, overtimeSec)
+  const handleComplete = (extended, gameTabClosed, overtimeSec = 0) => {
+    // Kręgle, Balon i Mowa mieszana: punkty z wyniku (data/points.js); pozostałe: stała stawka jak dotąd
+    const perf = performancePoints(exercise.module, startedAtRef.current)
+    finishAndAward(perf != null ? perf : (isDeviceExercise ? 20 : 5), extended, gameTabClosed, overtimeSec)
+  }
 
   const cancel = () => {
     // Zatrzymaj głos PRZED blokującym dialogiem potwierdzenia — eliminuje wyścig,
@@ -1195,7 +1245,8 @@ export default function ExerciseScreen({ exercise, plan, setPlan, user, setUser,
   const renderTimer = () => {
     switch (exercise.module) {
       case 'tongue_position': return <TongueTimer   exercise={exercise} onHalfPoints={handleHalfPoints} onComplete={handleComplete} />
-      case 'sz_lip':          return <SzLipTimer    exercise={exercise} onComplete={handleComplete} />
+      case 'sz_lip':          return <SzLipExercise exercise={exercise} onComplete={handleComplete} />
+      case 'mix_speech':      return <MixSpeechExercise exercise={exercise} onComplete={handleComplete} />
       case 'speech_rhythm':   return <RhythmTimer   exercise={exercise} onComplete={handleComplete} />
       default:                return <DeviceTimer   exercise={exercise} onComplete={handleComplete} gameWindow={gameWindow} />
     }
@@ -1219,8 +1270,7 @@ export default function ExerciseScreen({ exercise, plan, setPlan, user, setUser,
 
       {finished ? (
         <div className="card" style={{ textAlign: 'center' }}>
-          <div style={{ fontSize: 52, marginBottom: 8 }}>🎉</div>
-          <div style={{ fontWeight: 900, fontSize: 20, color: 'var(--green)' }}>Świetna robota!</div>
+          <div style={{ fontWeight: 800, fontSize: 24, color: 'var(--green)' }}>Zrobione</div>
           <div style={{ color: 'var(--muted)', marginTop: 4, fontSize: 14 }}>+{earnedPts} pkt zdobyte</div>
           <button className="btn btn-primary btn-full mt-12" onClick={() => setScreen('today')}>
             Wróć do planu

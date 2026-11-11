@@ -4,11 +4,11 @@ const DAYS_PL_FULL  = ['Poniedziałek', 'Wtorek', 'Środa', 'Czwartek', 'Piątek
 const DAYS_PL_SHORT = ['Pon', 'Wt', 'Śr', 'Czw', 'Pt', 'Sob', 'Nd']
 
 const MODULE_EMOJI = {
-  tongue_position: '👅',
-  sz_lip:          '👄',
-  speech_rhythm:   '🎵',
-  mechanical:      '⚙️',
-  froggy_mouth:    '🐸',
+  tongue_position: '',
+  sz_lip:          '',
+  speech_rhythm:   '',
+  mechanical:      '',
+  froggy_mouth:    '',
 }
 
 function getWeekDates() {
@@ -118,7 +118,7 @@ export default function WeekScreen({ exercises, user, plan }) {
               fontWeight: 900, fontSize: 14,
               color: day.isToday ? 'var(--primary)' : 'var(--text)',
             }}>
-              {day.isToday ? '👉 ' : ''}{day.name} {day.calDay}
+              {day.name} {day.calDay}
             </div>
             {day.isToday && <span className="chip chip-planned" style={{ fontSize: 10 }}>Dziś</span>}
             {day.exercises.length === 0
@@ -141,11 +141,10 @@ export default function WeekScreen({ exercises, user, plan }) {
                   padding: '11px 14px',
                   borderBottom: i < day.exercises.length - 1 ? '1px solid #F1F5F9' : 'none',
                 }}>
-                  <span style={{ fontSize: 20, flexShrink: 0 }}>{MODULE_EMOJI[ex.module] || '🎯'}</span>
                   <div style={{ flex: 1 }}>
                     <div style={{ fontWeight: 700, fontSize: 13 }}>{speechRhythmLabel(ex)}</div>
                     <div style={{ fontSize: 11, color: 'var(--muted)' }}>
-                      🕐 {ex.hour} · ⏱ {ex.duration} min · +{ex.points} pkt
+                      {ex.hour} · {ex.duration} min · +{ex.points} pkt
                     </div>
                   </div>
                   {day.isToday ? (
@@ -153,7 +152,7 @@ export default function WeekScreen({ exercises, user, plan }) {
                       {{ planned:'Plan', completed:'✓', skipped:'Pom.', cancelled:'Anul.', snoozed:'Odł.', missed:'Nie wyk.' }[ex.status]}
                     </span>
                   ) : (
-                    ex.alarmEnabled !== false && <span style={{ fontSize: 13 }}>🔔</span>
+                    null
                   )}
                 </div>
               ))}
@@ -162,9 +161,9 @@ export default function WeekScreen({ exercises, user, plan }) {
         </div>
       ))}
 
-      <div className="card" style={{ background: '#F0FDF4', border: '1.5px solid #BBF7D0', marginTop: 4 }}>
-        <p style={{ fontSize: 13, color: '#166534', lineHeight: 1.6 }}>
-          💡 Aby zmienić harmonogram lub parametry ćwiczeń, przejdź do zakładki <strong>Trener</strong>.
+      <div className="card" style={{ marginTop: 4 }}>
+        <p style={{ fontSize: 13, color: 'var(--muted)', lineHeight: 1.6 }}>
+          Harmonogram i parametry ćwiczeń ustawia dorosły w zakładce <strong>Trener</strong>.
         </p>
       </div>
     </div>

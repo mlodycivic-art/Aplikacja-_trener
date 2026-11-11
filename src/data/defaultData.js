@@ -312,13 +312,45 @@ const ADDED_CONTENT = {
   content_sz_s_harder_lines: MIX_HARDER, content_sz_s_twisters_lines: MIX_TWISTERS, content_sz_s_poem_text: MIX_POEM,
 }
 
+// Bank słów do ćwiczenia "Mowa mieszana": 'sz' = słowa z głoską szumiącą (cel),
+// 's' = słowa kontrolne z głoską syczącą. Propozycja — do zatwierdzenia przez logopedę.
+export const MIX_WORD_BANK = {
+  sz: [
+    'soczek', 'czemu', 'szalik', 'czapka', 'szafa', 'kasza', 'koszyk', 'teczka', 'taczka', 'paczka',
+    'szkoła', 'czekolada', 'żaba', 'rzeka', 'jeżyk', 'dżem', 'szyja', 'klucze', 'myszka', 'gruszka',
+    'czajnik', 'żyrafa', 'szuflada', 'kaczka',
+  ],
+  s: [
+    'sok', 'sanki', 'kasa', 'nos', 'pasek', 'cebula', 'cukier', 'koc', 'plac', 'zegar',
+    'zupa', 'koza', 'sałata', 'cytryna',
+  ],
+}
+
+// Nowe ćwiczenie dopisywane także do zapisanych danych (patrz migrateExercises)
+const MIX_SPEECH_EXERCISE = {
+  id: 'ex_6',
+  name: 'Mowa mieszana',
+  module: 'mix_speech',
+  schedule: [],
+  duration: 4,
+  points: 15,
+  instruction: 'Na ekranie pojawi się słowo. Powiedz je powoli i wyraźnie do mikrofonu, potem posłuchaj swojego nagrania i oceń, czy wyszło. Słowa są wymieszane: raz z „sz”, „cz”, „ż”, raz z „s”, „c”, „z”. Pilnuj języka i dzióbka tam, gdzie trzeba.',
+  alarmEnabled: true,
+  alarmAdvanceSec: 30,
+  alarmSound: 'phone',
+  visionEnabled: false,
+  params: { trials: 12 },
+}
+
 // ── Migracja zapisanych ćwiczeń ──────────────────────────────────────────────
 // Ćwiczenia są trwale zapisane w przeglądarce (stc_exercises), więc nowe zestawy z kodu
 // same się tam nie pojawią. Ta funkcja dopisuje brakujące zestawy i treść TYLKO tam,
 // gdzie pole jest puste — niczego, co wpisał trener, nie nadpisuje.
 export function migrateExercises(exercises) {
   let changed = false
-  const next = (exercises || []).map(ex => {
+  let list = exercises || []
+  if (!list.some(ex => ex.module === 'mix_speech')) { list = [...list, MIX_SPEECH_EXERCISE]; changed = true }
+  const next = list.map(ex => {
     if (ex.module !== 'speech_rhythm') return ex
     const params = { ...(ex.params || {}) }
     let sets = params.soundSets || DEFAULT_SOUND_SETS
@@ -459,6 +491,7 @@ export const DEFAULT_EXERCISES = [
     alarmSound: 'phone',
     visionEnabled: false,
   },
+  MIX_SPEECH_EXERCISE,
 ]
 
 // ── Generowanie planu dnia z szablonów ćwiczeń ───────────────────────────────
@@ -526,6 +559,16 @@ export function generateTodayPlan(exercises) {
 }
 
 export const MODULES = [
+  {
+    id: 'mix_speech',
+    name: 'Mowa mieszana',
+    emoji: '🎚',
+    desc: 'Słowa z „sz/cz/ż” wymieszane ze słowami z „s/c/z”: nagranie, odsłuch i samoocena',
+    available: true,
+    future: ['Automatyczna ocena głoski po kalibracji mikrofonu'],
+    requiresDevice: false,
+    minAge: null,
+  },
   {
     id: 'mechanical',
     name: 'Mechanical Tongue Trainer',
@@ -609,7 +652,9 @@ export const MODULES = [
 ]
 
 export function todayKey() {
-  return new Date().toISOString().slice(0, 10)
+  // czas lokalny, nie UTC
+  const d = new Date()
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
 // ── Etykieta wyświetlana dla Speech Rhythm: nazwa + głoska + poziom ──────────

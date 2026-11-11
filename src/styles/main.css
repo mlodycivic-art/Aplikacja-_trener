@@ -365,7 +365,7 @@ input, select, textarea { font-family: inherit; }
   background: #EEF2FF;
   color: var(--primary);
 }
-.module-tag.soon { background: #F5F3FF; color: #7C3AED; }
+.module-tag.soon { background: #EEF0F3; color: #475569; }
 
 /* ── Row list ─────────────────────────────────────────────── */
 .row-list-item {

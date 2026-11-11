@@ -1,11 +1,14 @@
 import { useState, useEffect, useRef } from 'react'
 import { DEFAULT_USER, DEFAULT_EXERCISES, generateTodayPlan, migrateExercises } from './data/defaultData'
 import { useStorage } from './hooks/useStorage'
+import { localDateKey } from './data/resultsStore'
 import { useAlarmChecker, useTitleFlash } from './components/useAlarm'
 import AlarmBanner from './components/AlarmBanner'
 import NavBar, { ADULT_SCREEN_IDS } from './components/NavBar'
 import PinGate       from './components/PinGate'
 import Icon          from './components/Icon'
+import TongueCheck   from './components/TongueCheck'
+import { TONGUE_CHECK_POINTS } from './data/points'
 import ProfileScreen  from './screens/ProfileScreen'
 import TodayScreen    from './screens/TodayScreen'
 import WeekScreen     from './screens/WeekScreen'
@@ -17,7 +20,8 @@ import ParentScreen   from './screens/ParentScreen'
 import SibilantTestScreen from './screens/SibilantTestScreen'
 import ExerciseScreen from './screens/ExerciseScreen'
 
-const todayKey = () => new Date().toISOString().slice(0, 10)
+// Klucz dnia wg czasu LOKALNEGO (wcześniej UTC — plan zmieniał się w Polsce o 1:00 lub 2:00 zamiast o północy)
+const todayKey = () => localDateKey()
 const ALARM_TIMEOUT_MS = 5 * 60 * 1000 // 5 minut bez reakcji
 
 export default function App() {
@@ -38,7 +42,7 @@ export default function App() {
   // Jednorazowe dopisanie nowych zestawów głoskowych do zapisanych ćwiczeń (bez nadpisywania treści trenera)
   useEffect(() => {
     // Wersja danych: migracja uruchamia się raz, żeby zestaw usunięty później przez trenera nie wracał
-    const DATA_VERSION = 2
+    const DATA_VERSION = 3
     let done = 0
     try { done = Number(localStorage.getItem('stc_data_version') || 0) } catch (e) {}
     if (done >= DATA_VERSION) return
@@ -48,11 +52,23 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  // Zmiana dnia przy otwartej aplikacji: po północy wczytujemy plan nowego dnia.
+  // Nie przerywamy trwającego ćwiczenia — przeładowanie nastąpi po wyjściu z niego.
+  const loadedDayRef = useRef(todayKey())
+  useEffect(() => {
+    const id = setInterval(() => {
+      if (todayKey() !== loadedDayRef.current && screenRef.current !== 'exercise') window.location.reload()
+    }, 30000)
+    return () => clearInterval(id)
+  }, [])
+  const screenRef = useRef(screen)
+  screenRef.current = screen
+
   // Alarm checker — sprawdza co kilka sekund czy czas na trening
   useAlarmChecker(plan, (ex) => setAlarm(ex))
 
   // Migający tytuł karty — widoczny nawet gdy użytkownik jest na innej karcie
-  useTitleFlash(!!alarm, '⏰ Czas na trening!')
+  useTitleFlash(!!alarm, 'Czas na trening!')
 
   const dismissAlarm = () => setAlarm(null)
   const goToToday = () => { setAlarm(null); setScreen('today') }
@@ -165,6 +181,10 @@ export default function App() {
       <main className="screen-content">
         {renderScreen()}
       </main>
+
+      {/* Losowe sprawdzenia pozycji języka — tylko w strefie ćwiczącego i poza ćwiczeniem */}
+      <TongueCheck active={!inAdultZone && screen !== 'exercise' && !alarm && !pinOpen}
+        onAnswer={() => setUser(prev => ({ ...prev, points: (prev.points || 0) + TONGUE_CHECK_POINTS }))} />
 
       {screen !== 'exercise' && (
         <NavBar screen={screen} setScreen={setScreen} zone={inAdultZone ? 'adult' : 'child'} />

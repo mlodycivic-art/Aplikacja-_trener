@@ -6,13 +6,13 @@ import Icon from './Icon'
 export const CHILD_ITEMS = [
   { id: 'today',   label: 'Dziś',    icon: 'today' },
   { id: 'week',    label: 'Tydzień', icon: 'week' },
-  { id: 'rewards', label: 'Nagrody', icon: 'rewards' },
+  { id: 'rewards', label: 'Postępy', icon: 'rewards' },
 ]
 
 export const ADULT_ITEMS = [
   { id: 'trainer', label: 'Trener',     icon: 'trainer' },
   { id: 'vision',  label: 'Kalibracja', icon: 'camera' },
-  { id: 'sibtest', label: 'Test SZ',    icon: 'wave' },
+  { id: 'sibtest', label: 'Mikrofon',   icon: 'wave' },
   { id: 'parent',  label: 'Rodzic',     icon: 'parent' },
   { id: 'profile', label: 'Profil',     icon: 'profile' },
   { id: 'modules', label: 'Moduły',     icon: 'modules' },

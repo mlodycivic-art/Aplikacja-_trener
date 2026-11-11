@@ -6,6 +6,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { useSibilantMeter, pairVerdict, BAND_LO_HZ } from './games/useSibilantMeter'
+import PatternBaseScreen from './PatternBaseScreen'
 
 const SCALE_MIN = 2500   // dół wykresu (strona "SZ")
 const SCALE_MAX = 8500   // góra wykresu (strona "S")
@@ -24,7 +25,7 @@ const PRESET_PAIRS = [
 const pairKey = (p) => `${p.wrong}|${p.right}`
 const fmtHz = (v) => (v == null ? 'brak szumu' : `${v} Hz`)
 
-export default function SibilantTestScreen() {
+function QuickTest() {
   const meter = useSibilantMeter()
   const [micState, setMicState] = useState('off')       // off | calibrating | on | error
   const [pairs, setPairs]       = useState(PRESET_PAIRS)
@@ -233,10 +234,6 @@ export default function SibilantTestScreen() {
 
   return (
     <div>
-      <h2 className="section-title">Test SZ</h2>
-      <p className="section-sub">
-        Sprawdzamy, czy mikrofon tego urządzenia odróżnia „soczek” od „socek”. Narzędzie dla dorosłego.
-      </p>
 
       {/* ── Mikrofon + wykres na żywo ── */}
       <div className="card">
@@ -322,6 +319,28 @@ export default function SibilantTestScreen() {
           progi ustawimy później z nagrań zatwierdzonych przez logopedkę.
         </div>
       </div>
+    </div>
+  )
+}
+
+// Ekran ma dwie części (naraz działa jedna, bo obie używają mikrofonu):
+//  - Szybki test: czy na tym urządzeniu w ogóle da się odróżnić s od sz (nic nie zapisuje),
+//  - Baza wzorców: trwałe nagrania oceniane przez logopedę, z których liczony jest próg.
+export default function SibilantTestScreen() {
+  const [tab, setTab] = useState('test')
+  return (
+    <div>
+      <h2 className="section-title">Mikrofon: głoski SZ</h2>
+      <p className="section-sub">
+        {tab === 'test'
+          ? 'Szybki test: czy mikrofon tego urządzenia odróżnia „soczek” od „socek”.'
+          : 'Baza wzorców: nagrania Karolka oceniane przez logopedę. Z nich powstaje jego próg.'}
+      </p>
+      <div className="type-selector">
+        <button className={`type-btn ${tab === 'test' ? 'active' : ''}`} onClick={() => setTab('test')}>Szybki test</button>
+        <button className={`type-btn ${tab === 'base' ? 'active' : ''}`} onClick={() => setTab('base')}>Baza wzorców</button>
+      </div>
+      {tab === 'test' ? <QuickTest /> : <PatternBaseScreen />}
     </div>
   )
 }

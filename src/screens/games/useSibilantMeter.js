@@ -229,12 +229,13 @@ export function useSibilantMeter() {
     const durationMs = Math.round(performance.now() - take.startT)
     const rel = take.frames.map(f => ({ ...f, t: f.t - take.startT }))
     const segments = analyseFrames(rel)
-    const result = { value: takeValue(segments), segments, durationMs, url: null }
+    const result = { value: takeValue(segments), segments, durationMs, url: null, blob: null }
     const rec = take.recorder
     if (rec && rec.state !== 'inactive') {
       rec.onstop = () => {
         try {
           const blob = new Blob(take.chunks, { type: rec.mimeType || 'audio/webm' })
+          result.blob = blob
           result.url = URL.createObjectURL(blob)
         } catch (e) {}
         resolve(result)
