@@ -96,7 +96,7 @@ function TimeInput({ value, onChange }) {
     width: 64, padding: '11px 10px', borderRadius: 10,
     border: '2px solid var(--border)', fontSize: 20,
     fontFamily: "'Space Mono', monospace", fontWeight: 700,
-    textAlign: 'center', outline: 'none', background: '#fff', color: 'var(--text)',
+    textAlign: 'center', outline: 'none', background: 'var(--surface)', color: 'var(--text)',
   }
 
   const commitHour = (raw) => {
@@ -169,7 +169,7 @@ function SlotTimeInput({ value, onChange }) {
     width: 36, padding: '7px 4px', textAlign: 'center',
     border: '2px solid var(--border)', borderRadius: 8,
     fontFamily: "'Space Mono', monospace", fontWeight: 700, fontSize: 14,
-    background: '#fff', color: 'var(--text)', outline: 'none',
+    background: 'var(--surface)', color: 'var(--text)', outline: 'none',
   }
 
   const commitH = (raw) => {
@@ -553,7 +553,7 @@ export default function TrainerScreen({ exercises, setExercises, plan, setPlan }
                           <div key={slot._globalIdx} style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6, flexWrap: 'wrap' }}>
                             <SlotTimeInput value={slot.hour || ''} onChange={h => updateSlotByIdx(slot._globalIdx, 'hour', h)} />
                             <select value={slot.setIdx ?? 0}
-                              style={{ padding: '6px 8px', borderRadius: 8, border: '2px solid var(--border)', fontSize: 12, background: '#fff', outline: 'none', flex: 1, minWidth: 140 }}
+                              style={{ padding: '6px 8px', borderRadius: 8, border: '2px solid var(--border)', fontSize: 12, background: 'var(--surface)', outline: 'none', flex: 1, minWidth: 140 }}
                               onChange={e => updateSlotByIdx(slot._globalIdx, 'setIdx', Number(e.target.value))}>
                               {nonEmpty.length === 0
                                 ? <option value={0}>— najpierw zdefiniuj zestawy słów powyżej —</option>
@@ -604,7 +604,7 @@ export default function TrainerScreen({ exercises, setExercises, plan, setPlan }
                       <div key={slot._globalIdx} style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6, flexWrap: 'wrap' }}>
                         <SlotTimeInput value={slot.hour} onChange={h => updateSlotByIdx(slot._globalIdx, 'hour', h)} />
                         <select value={slot.activeSetId || sets[0]?.id || ''}
-                          style={{ padding: '6px 8px', borderRadius: 8, border: '2px solid var(--border)', fontSize: 13, fontWeight: 700, background: '#fff', outline: 'none' }}
+                          style={{ padding: '6px 8px', borderRadius: 8, border: '2px solid var(--border)', fontSize: 13, fontWeight: 700, background: 'var(--surface)', outline: 'none' }}
                           onChange={e => {
                             const set = sets.find(s => s.id === e.target.value)
                             updateSlotByIdx(slot._globalIdx, 'activeSetId', e.target.value)
@@ -613,7 +613,7 @@ export default function TrainerScreen({ exercises, setExercises, plan, setPlan }
                           {sets.map(s => <option key={s.id} value={s.id}>„{s.phoneme}"</option>)}
                         </select>
                         <select value={slot.activeLevel || 'short'}
-                          style={{ padding: '6px 8px', borderRadius: 8, border: '2px solid var(--border)', fontSize: 12, background: '#fff', outline: 'none', flex: 1, minWidth: 140 }}
+                          style={{ padding: '6px 8px', borderRadius: 8, border: '2px solid var(--border)', fontSize: 12, background: 'var(--surface)', outline: 'none', flex: 1, minWidth: 140 }}
                           onChange={e => updateSlotByIdx(slot._globalIdx, 'activeLevel', e.target.value)}>
                           {rhythmLevels(sets.find(s => s.id === slot.activeSetId)?.phoneme).map(l => (
                             <option key={l.id} value={l.id}>{l.label}</option>
@@ -675,7 +675,7 @@ export default function TrainerScreen({ exercises, setExercises, plan, setPlan }
               {(() => {
                 const total = szTotalSec(form.params)
                 return (
-                  <div style={{ background: '#EEF2FF', borderRadius: 10, padding: '10px 12px', marginTop: 12, marginBottom: 12, fontSize: 13, color: 'var(--primary)', fontWeight: 700 }}>
+                  <div style={{ background: 'var(--active-bg)', borderRadius: 10, padding: '10px 12px', marginTop: 12, marginBottom: 12, fontSize: 13, color: 'var(--primary)', fontWeight: 700 }}>
                     Szacowany czas treningu: ~{Math.ceil(total / 60)} min ({Math.round(total)}s)
                   </div>
                 )
@@ -799,7 +799,7 @@ export default function TrainerScreen({ exercises, setExercises, plan, setPlan }
               {(() => {
                 const total = rhythmTotalSec(form.params)
                 return (
-                  <div style={{ background: '#EEF2FF', borderRadius: 10, padding: '10px 12px', marginTop: 12, marginBottom: 12, fontSize: 13, color: 'var(--primary)', fontWeight: 700 }}>
+                  <div style={{ background: 'var(--active-bg)', borderRadius: 10, padding: '10px 12px', marginTop: 12, marginBottom: 12, fontSize: 13, color: 'var(--primary)', fontWeight: 700 }}>
                     Szacowany czas treningu: ~{Math.ceil(total / 60)} min ({Math.round(total)}s)
                   </div>
                 )
@@ -807,7 +807,7 @@ export default function TrainerScreen({ exercises, setExercises, plan, setPlan }
             </>)}
 
             {(editEx.module === 'mechanical' || editEx.module === 'froggy_mouth') && (
-              <div style={{ background: '#F5F3FF', borderRadius: 10, padding: '10px 12px', marginBottom: 4, fontSize: 12, color: 'var(--purple)' }}>
+              <div style={{ background: 'var(--soft)', borderRadius: 10, padding: '10px 12px', marginBottom: 4, fontSize: 12, color: 'var(--purple)' }}>
                 ℹ️ Podczas treningu: przypomnienie ~1 min przed końcem (2×, bez potwierdzenia) oraz alarm końcowy dzwoniący do kliknięcia.
               </div>
             )}
@@ -826,6 +826,67 @@ export default function TrainerScreen({ exercises, setExercises, plan, setPlan }
               Jeśli włączony, ćwiczenie pojawi się na liście do kalibracji w zakładce „Wizja” i będzie
               wymagało kalibracji przez logopedę przed uruchomieniem.
             </div>
+
+            {editEx.module === 'bubble_game' && (<>
+              <div className="divider" />
+              <span style={{ fontWeight: 800, fontSize: 14, display: 'block', marginBottom: 10 }}>Ustawienia gry Bańki</span>
+
+              <label className="form-label">Czas gry</label>
+              <div className="type-selector">
+                {[60, 120, 180, 300].map(sec => (
+                  <button key={sec} className={`type-btn ${(form.params?.gameDurationSec ?? 120) === sec ? 'active' : ''}`}
+                    onClick={() => setParam('gameDurationSec', sec)}>{sec / 60} min</button>
+                ))}
+              </div>
+
+              <label className="form-label">Głoska (zestaw)</label>
+              <div className="type-selector">
+                {[{ id: 'sz', label: 'sz' }, { id: 'cz', label: 'cz' }, { id: 'ż', label: 'ż / rz' }, { id: 'sz_s', label: 'sz–s' }].map(o => (
+                  <button key={o.id} className={`type-btn ${(form.params?.bubbleSet || 'sz') === o.id ? 'active' : ''}`}
+                    onClick={() => setParam('bubbleSet', o.id)}>{o.label}</button>
+                ))}
+              </div>
+
+              <label className="form-label">Co jest w bańkach</label>
+              <select className="form-input" value={form.params?.bubbleLevel || 'words'} onChange={e => setParam('bubbleLevel', e.target.value)}>
+                <option value="words">Pojedyncze słowa</option>
+                <option value="short">Krótkie zdania (z zestawu Speech Rhythm)</option>
+                <option value="medium">Zdania średniej długości</option>
+                <option value="twisters">Łamańce</option>
+              </select>
+
+              <label className="form-label">Tolerancja oceny</label>
+              <div className="type-selector">
+                {[{ id: 'easy', label: 'Łagodna' }, { id: 'normal', label: 'Zwykła' }, { id: 'strict', label: 'Dokładna' }].map(o => (
+                  <button key={o.id} className={`type-btn ${(form.params?.bubbleTolerance || 'normal') === o.id ? 'active' : ''}`}
+                    onClick={() => setParam('bubbleTolerance', o.id)}>{o.label}</button>
+                ))}
+              </div>
+              <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 14 }}>
+                Gra ocenia głoski dopiero po kalibracji mikrofonu (zakładka Mikrofon). Bez niej działa w trybie treningowym.
+                Głoskę „ż” mikrofon słyszy słabiej niż „sz” i „cz”, więc w zestawie „ż / rz” ocena bywa niepewna.
+              </div>
+            </>)}
+
+            {editEx.module === 'tongue_closed' && (<>
+              <div className="divider" />
+              <span style={{ fontWeight: 800, fontSize: 14, display: 'block', marginBottom: 10 }}>Ustawienia ćwiczenia</span>
+              <label className="form-label">Wypchnięcie policzka: czas trzymania (sekundy)</label>
+              <input className="form-input" type="number" min={1} max={10} value={form.params?.holdSec ?? 3} onChange={e => setParam('holdSec', Number(e.target.value))} />
+              <label className="form-label">Liczba wypchnięć na każdą stronę</label>
+              <input className="form-input" type="number" min={1} max={15} value={form.params?.holdReps ?? 4} onChange={e => setParam('holdReps', Number(e.target.value))} />
+              <label className="form-label">Jedno okrążenie językiem (sekundy)</label>
+              <input className="form-input" type="number" min={3} max={15} value={form.params?.lapSec ?? 6} onChange={e => setParam('lapSec', Number(e.target.value))} />
+              <label className="form-label">Liczba okrążeń w każdą stronę</label>
+              <input className="form-input" type="number" min={1} max={10} value={form.params?.laps ?? 3} onChange={e => setParam('laps', Number(e.target.value))} />
+              <label className="form-label">Kamera pilnuje zamkniętych ust</label>
+              <div className="type-selector">
+                {[{ v: true, label: 'Tak' }, { v: false, label: 'Nie' }].map(o => (
+                  <button key={o.label} className={`type-btn ${(form.params?.useCamera ?? true) === o.v ? 'active' : ''}`}
+                    onClick={() => setParam('useCamera', o.v)}>{o.label}</button>
+                ))}
+              </div>
+            </>)}
 
             {editEx.module === 'sz_lip' && form.visionEnabled && (<>
               <div className="divider" />

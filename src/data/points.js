@@ -3,6 +3,7 @@
 //   Kręgle          1 pkt za każde 2 przewrócone kręgle, 10 pkt za strike
 //   Balon           1 pkt za 3 dzióbki, +10 pkt za napompowany balon
 //   Mowa mieszana   1 pkt za słowo, 2 pkt za słowo poprawione po odsłuchu
+//   Bańki           10 pkt za bańkę przebitą dobrą głoską; 3 pkt w trybie treningowym (bez oceny)
 //   Gdzie jest język?  1 pkt za każdą odpowiedź, niezależnie od treści
 //                      (żeby nie opłacało się klikać "u góry" dla punktów)
 //   Pozostałe ćwiczenia: jak dotąd (stała liczba punktów)
@@ -20,6 +21,7 @@ export function pointsForEntry(entry) {
     case 'bowling_throw': return d.pins === 10 ? 10 : Math.floor((d.pins || 0) / 2)
     case 'balloon_game':  return Math.floor((d.cycles || 0) / 3) + (d.completed ? 10 : 0)
     case 'mix_trial':     return d.selfRating === 'good' && d.attempts > 1 ? 2 : 1
+    case 'bubble_game':   return d.points || 0   // 10 pkt za bańkę z oceną głoski, 3 pkt w trybie treningowym
     default:              return 0
   }
 }
@@ -29,6 +31,7 @@ const MODULE_RESULT_TYPE = {
   speech_rhythm: 'bowling_throw',
   sz_lip:        'balloon_game',
   mix_speech:    'mix_trial',
+  bubble_game:   'bubble_game',
 }
 
 // Punkty za ćwiczenie zakończone teraz, na podstawie wpisów zapisanych od sinceTs.

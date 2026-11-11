@@ -34,6 +34,12 @@ Główna miara postępu: **% poprawnych głosek w 2-minutowej próbce swobodnej 
 | 7 | Baza wzorców mikrofonu: trwałe nagrania par, akceptacja logopedy, osobisty próg | `src/screens/PatternBaseScreen.jsx`, `src/data/patternStore.js` | logika testami; **nagrania z Karolkiem — do zrobienia** |
 | 7 | Punkty zależne od wyniku (kręgle, balon, mowa mieszana, sprawdzenia języka) | `src/data/points.js` | testy logiki |
 | 7 | Instalacja na ekranie głównym: manifest i ikony (bez pracy offline) | `public/`, `index.html` | manifest wczytuje się; **instalacja na tablecie — do sprawdzenia** |
+| 8 | Kalibracja mikrofonu w minutę (długie „ssss” i „szszsz”) → próg dla gier | `src/screens/QuickMicCalibration.jsx`, `computeQuickProfile` w `patternStore.js` | testy logiki; **prawdziwy głos — do zrobienia** |
+| 8 | Ocena wypowiedzi z tekstu: jakie głoski powinny paść i czy padły, trzy tolerancje | `src/data/sibilants.js` | testy logiki na danych sztucznych |
+| 8 | Gra Bańki (słowa lub zdania z Trenera, czas gry, tolerancja; tryb oceny i tryb treningowy) | `src/screens/games/BubbleGame.jsx`, `GAME_WORDS` w `defaultData.js` | przeglądarka testowa w trybie testowym; **mikrofon — do zrobienia** |
+| 8 | Osobista kalibracja ust (spoczynek + dzióbek) i poziom dzióbka względem własnego zakresu | `src/screens/vision/QuickFaceCalibration.jsx`, `src/data/faceProfile.js` | **nieuruchamiane na twarzy** |
+| 8 | Ćwiczenie „Język za zamkniętymi ustami” (policzki, okrążenia; kamera pilnuje zamkniętych ust i zbiera dane o policzkach) | `src/screens/TongueClosedExercise.jsx` | przeglądarka testowa bez kamery |
+| 8 | Skiny: Nowoczesny, Futurystyczny, Arena, Aurora, Studio + 9 akcentów | `src/data/theme.js`, `src/components/ThemePicker.jsx`, `main.css` | przeglądarka testowa (wszystkie skiny) |
 
 PIN strefy dorosłego: `1234` (testowy, `src/components/PinGate.jsx`).
 
@@ -51,6 +57,12 @@ PIN strefy dorosłego: `1234` (testowy, `src/components/PinGate.jsx`).
 7. **Praca bez internetu** (model kamery lokalnie, pamięć podręczna aplikacji).
 8. **Wystawienie aplikacji pod adresem https**, żeby dało się ją zainstalować na tablecie spoza sieci domowej.
 9. **Tempo mowy**: pomiar sylab na sekundę i nagradzanie spokojnego tempa w Speech Rhythm.
+10. **Wykrywanie wypchniętego policzka z kamery**: ćwiczenie „Język za zamkniętymi ustami” zapisuje już
+    średnie położenie punktów policzków (`cheekFeatures` w wynikach). Po kilku sesjach sprawdzić, czy lewa
+    i prawa strona różnią się wystarczająco, i dopiero wtedy budować detektor.
+11. **Kalibracja, która uczy się osoby**: aktualizować próg mikrofonu i profil ust z prób ocenionych
+    jako pewne (dziś progi zmienia tylko ponowna kalibracja).
+12. **Sprawdzić ocenę „ż / rz” i głosek ciszących (ś, ć)** na nagraniach: miernik słyszy pewnie tylko sz, cz, s, c.
 
 ## Systemy wizyjne — plan
 

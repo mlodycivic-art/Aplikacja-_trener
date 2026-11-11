@@ -5,6 +5,7 @@ import { BADGE_DEFS, LEVELS, getLevel } from '../data/defaultData'
 import { buildWeek, currentStreak } from '../data/weekReport'
 import { useResults } from '../data/resultsStore'
 import Icon from '../components/Icon'
+import ThemePicker from '../components/ThemePicker'
 
 function Record({ value, label, color = 'var(--primary)' }) {
   return (
@@ -112,6 +113,8 @@ export default function RewardsScreen({ user, plan }) {
           )
         })}
       </div>
+
+      <ThemePicker />
     </div>
   )
 }

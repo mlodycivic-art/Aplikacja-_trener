@@ -81,19 +81,52 @@ function saveThreshold(t) {
   } catch (e) {}
 }
 
-// Próg zapisany dla tego urządzenia albo null. Tylko jakość 'good' nadaje się do oceniania.
-export function getThreshold() {
+// ── Szybka kalibracja (1 minuta): długie "ssss" i długie "szszsz" ──────────────
+// Dziecko, które umie powiedzieć głoskę w skupieniu, daje w ten sposób czysty wzorzec obu głosek.
+// sFrames / szFrames: wartości pomiaru (Hz) z ramek, w których wykryto szum.
+const QUICK_KEY = 'stc_sz_quick'
+const percentile = (arr, q) => {
+  const a = [...arr].sort((x, y) => x - y)
+  return a[Math.min(a.length - 1, Math.max(0, Math.floor(q * (a.length - 1))))]
+}
+export function computeQuickProfile(sFrames, szFrames) {
+  if (sFrames.length < 20 || szFrames.length < 20) return { hz: null, gap: null, quality: 'none', sHz: null, szHz: null }
+  const sHz = Math.round(percentile(sFrames, 0.5)), szHz = Math.round(percentile(szFrames, 0.5))
+  // odstęp liczony "od środka": dolne 20% ramek "s" minus górne 20% ramek "sz"
+  const gap = Math.round(percentile(sFrames, 0.2) - percentile(szFrames, 0.8))
+  if (gap <= 0) return { hz: null, gap, quality: 'overlap', sHz, szHz }
+  const hz = Math.round((percentile(sFrames, 0.2) + percentile(szFrames, 0.8)) / 2)
+  return { hz, gap, quality: gap >= MIN_GAP_HZ ? 'good' : 'narrow', sHz, szHz }
+}
+export function saveQuickProfile(profile) {
   try {
-    const t = JSON.parse(localStorage.getItem(THRESHOLD_KEY) || 'null')
-    return t && typeof t.hz === 'number' ? t : null
-  } catch (e) { return null }
+    if (!profile || profile.hz == null) localStorage.removeItem(QUICK_KEY)
+    else localStorage.setItem(QUICK_KEY, JSON.stringify({ ...profile, source: 'quick', date: new Date().toISOString(), device: navigator.userAgent }))
+  } catch (e) {}
+  window.dispatchEvent(new Event(EVENT))
+}
+export function getQuickProfile() {
+  try { const t = JSON.parse(localStorage.getItem(QUICK_KEY) || 'null'); return t && typeof t.hz === 'number' ? t : null } catch (e) { return null }
+}
+
+// Próg obowiązujący na tym urządzeniu albo null.
+// Kolejność: pewny próg z bazy wzorców (oceniony przez logopedę) → pewny próg z szybkiej kalibracji
+// → cokolwiek niepewnego (tylko do podglądu; classifyValue ocenia wyłącznie przy jakości 'good').
+export function getThreshold() {
+  let base = null
+  try { const t = JSON.parse(localStorage.getItem(THRESHOLD_KEY) || 'null'); base = t && typeof t.hz === 'number' ? { ...t, source: 'base' } : null } catch (e) {}
+  const quick = getQuickProfile()
+  if (base && base.quality === 'good') return base
+  if (quick && quick.quality === 'good') return quick
+  return base || quick || null
 }
 
 // Ocena pojedynczego pomiaru względem progu: 'sz' (szumiąca) | 's' (sycząca) | null (nie wiadomo).
 // Pomiary bliżej progu niż 1/4 odstępu zostawiamy bez oceny — lepiej nie ocenić niż ocenić źle.
-export function classifyValue(value, threshold = getThreshold()) {
+// deadFraction: jaka część odstępu po każdej stronie progu zostaje "strefą niepewną" (domyślnie 1/4).
+export function classifyValue(value, threshold = getThreshold(), deadFraction = 0.25) {
   if (value == null || !threshold || threshold.quality !== 'good') return null
-  const dead = threshold.gap / 4
+  const dead = threshold.gap * deadFraction
   if (value <= threshold.hz - dead) return 'sz'
   if (value >= threshold.hz + dead) return 's'
   return null

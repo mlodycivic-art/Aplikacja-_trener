@@ -26,6 +26,7 @@ const NOISE_CAL_MS      = 700     // tyle trwa pomiar tła po włączeniu mikrof
 const HISS_OVER_NOISE   = 6       // szum głoski musi być ≥ 6× mocniejszy od tła (~8 dB)
 const HISS_OVER_VOICE   = 1.0     // i mocniejszy niż pasmo głosu (odcina samogłoski)
 const KEEP_MS           = 3000    // długość historii na żywo
+const LOUD_OVER_NOISE   = 5       // głos/szum ≥ 5× tło = ktoś mówi
 export const MIN_SEGMENT_MS = 40  // krótsze "szumy" pomijamy (trzaski, zwarcia k/t)
 export const MAX_GAP_MS     = 35  // przerwa krótsza niż to nie dzieli odcinka
 
@@ -135,11 +136,14 @@ export function useSibilantMeter() {
           weighted += p * (i * binHz)
           noiseBand += noise[i]
         }
-        for (let i = vLo; i <= vHi; i++) voice += Math.max(0, Math.pow(10, spec[i] / 10) - noise[i] * 1.5)
+        let noiseVoice = 0
+        for (let i = vLo; i <= vHi; i++) { voice += Math.max(0, Math.pow(10, spec[i] / 10) - noise[i] * 1.5); noiseVoice += noise[i] }
 
         const hiss = band > noiseBand * HISS_OVER_NOISE && band > voice * HISS_OVER_VOICE
         const cog  = band > 0 ? weighted / band : 0
-        const frame = { t: now, hiss, cog, db: 10 * Math.log10(band + 1e-20) }
+        // loud = słychać głos lub szum wyraźnie ponad tło (do wykrywania początku i końca wypowiedzi)
+        const loud = hiss || (voice + band) > (noiseVoice + noiseBand) * LOUD_OVER_NOISE
+        const frame = { t: now, hiss, loud, cog, db: 10 * Math.log10(band + 1e-20) }
 
         const frames = framesRef.current
         frames.push(frame)

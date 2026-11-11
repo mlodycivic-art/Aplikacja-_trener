@@ -18,6 +18,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useFaceEngine } from '../vision/useFaceEngine'
 import { checkPucker, checkMouthClosed } from '../vision/detectors'
 import { getAgeProfile } from '../vision/ageProfiles'
+import { getFaceProfile, personalPuckerLevel, personalMouthClosed } from '../../data/faceProfile'
 import { addResult } from '../../data/resultsStore'
 import { playGameSound } from '../../components/useAlarm'
 
@@ -38,6 +39,8 @@ export default function BalloonGame({ exercise, ageGroup, onComplete, onExit }) 
   const difficulty   = p.gameDifficulty || 'normal'
   const needLevel    = REQUIRED_LEVEL[difficulty] || 2
   const profile      = getAgeProfile(ageGroup)
+  // Osobisty profil ust (Kalibracja → Osobista kalibracja ust) ma pierwszeństwo przed progami grupy wiekowej
+  const personal     = useRef(getFaceProfile()).current
 
   const face = useFaceEngine()
   const sim  = useRef(isSimMode()).current
@@ -82,11 +85,13 @@ export default function BalloonGame({ exercise, ageGroup, onComplete, onExit }) 
       if (points && face.msSinceFace() < FACE_LOST_MS) {
         const size = face.getCanvasSize()
         const pk = checkPucker(points, size, profile.pucker)
-        if (pk.level >= needLevel) mouth = 'pucker'
+        const level = personal ? personalPuckerLevel(pk.widthRatio, pk.aspect, personal) : pk.level
+        if (level >= needLevel) mouth = 'pucker'
         else {
           const cl = checkMouthClosed(points, size, profile.mouth)
+          const closed = personal ? personalMouthClosed(pk.aspect, personal) : cl.closedEnough
           // Na poziomie łatwym odpoczynek = po prostu brak dzióbka; wyżej = usta zamknięte
-          mouth = (difficulty === 'easy' ? pk.level === 0 : cl.closedEnough) ? 'closed' : 'other'
+          mouth = (difficulty === 'easy' ? level === 0 : closed) ? 'closed' : 'other'
         }
       }
       // [MIKROFON] tu dojdzie warunek: podczas dzióbka słychać szum "sz" (useSibilantMeter)
@@ -230,7 +235,7 @@ export default function BalloonGame({ exercise, ageGroup, onComplete, onExit }) 
       {/* Wskaźnik ust + pierścień utrzymania */}
       <div style={{ display: 'flex', justifyContent: 'center', marginTop: 10 }}>
         <svg width="96" height="96" viewBox="0 0 96 96" aria-hidden="true">
-          <circle cx="48" cy="48" r="42" fill="none" stroke="#E5E7EB" strokeWidth="8" />
+          <circle cx="48" cy="48" r="42" fill="none" stroke="var(--soft)" strokeWidth="8" />
           <circle cx="48" cy="48" r="42" fill="none" stroke={ringColor} strokeWidth="8" strokeLinecap="round"
             strokeDasharray={2 * Math.PI * 42} strokeDashoffset={2 * Math.PI * 42 * (1 - ui.hold)}
             transform="rotate(-90 48 48)" />

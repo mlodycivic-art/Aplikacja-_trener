@@ -30,7 +30,7 @@ function WeekCard({ week }) {
             <span style={{ fontSize: 12, fontWeight: 800 }}>{d.hasPlan ? `${d.completed}/${d.total}` : '–'}</span>
             <div title={`${d.completed} z ${d.total}`} style={{
               width: '100%', maxWidth: 38, height: `${Math.max(3, (d.total / max) * 62)}%`,
-              background: '#E5E7EB', borderRadius: '6px 6px 0 0', display: 'flex', alignItems: 'flex-end', overflow: 'hidden',
+              background: 'var(--soft)', borderRadius: '6px 6px 0 0', display: 'flex', alignItems: 'flex-end', overflow: 'hidden',
             }}>
               <div style={{ width: '100%', height: `${d.total ? (d.completed / d.total) * 100 : 0}%`, background: 'var(--green)' }} />
             </div>

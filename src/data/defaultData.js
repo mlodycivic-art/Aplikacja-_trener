@@ -342,6 +342,75 @@ const MIX_SPEECH_EXERCISE = {
   params: { trials: 12 },
 }
 
+// ── Słowa do gier, ułożone według tej samej logiki co karty logopedyczne ─────
+// Każda głoska w trzech pozycjach (początek, środek, koniec wyrazu), od prostych sylab
+// do zbitek spółgłoskowych; bez głosek syczących w tym samym słowie (poza zestawem mieszanym).
+// Propozycja do zatwierdzenia przez logopedę, jak zdania.
+export const GAME_WORDS = {
+  sz: [
+    'szafa', 'szalik', 'szuflada', 'szyja', 'szopa', 'szum', 'szelki', 'szpak', 'szkoła', 'sznurek',
+    'kasza', 'koszyk', 'myszka', 'gruszka', 'poduszka', 'kieszeń', 'wieszak', 'maszyna', 'daszek', 'uszy',
+    'kosz', 'mysz', 'afisz', 'kapelusz', 'listonosz', 'plusz', 'grosz', 'tusz',
+  ],
+  cz: [
+    'czapka', 'czajnik', 'czekolada', 'czytanka', 'czoło', 'czubek', 'człowiek', 'czwartek', 'czerwony', 'czysty',
+    'teczka', 'taczka', 'paczka', 'kaczka', 'beczka', 'rączka', 'pączek', 'oczy', 'liczydło', 'wieczór',
+    'klucz', 'mecz', 'płacz', 'bicz', 'warkocz', 'bogacz', 'tłumacz', 'badacz',
+  ],
+  'ż': [
+    'żaba', 'żuk', 'żyrafa', 'żółw', 'żaglówka', 'żelazko', 'żarówka', 'rzeka', 'rzodkiewka', 'rzęsy',
+    'jeżyk', 'róża', 'wieża', 'duży', 'leżak', 'burza', 'morze', 'korzeń', 'jarzyny', 'orzech',
+    'drzewo', 'grzyb', 'brzeg', 'drzwi',
+  ],
+  sz_s: [
+    'soczek', 'słoneczko', 'serniczek', 'samochodzik', 'stoliczek', 'sześć', 'szosa', 'suszarka', 'starszy', 'słyszy',
+    'czasopismo', 'staruszek', 'szesnaście', 'sznurowadło', 'sukieneczka', 'Sasza', 'susza', 'szansa', 'szelest', 'czosnek',
+  ],
+}
+
+// Zdania wpisane w Trenerze (Speech Rhythm) dla danego zestawu i poziomu — te, które widzi logopeda.
+// Gry czytają materiał stąd, żeby zmiana zdania w Trenerze zmieniała też grę.
+export function getRhythmLines(setId, level) {
+  let params = null
+  try {
+    const stored = JSON.parse(localStorage.getItem('stc_exercises') || 'null')
+    params = (stored || []).find(e => e.module === 'speech_rhythm')?.params || null
+  } catch (e) {}
+  if (!params) params = DEFAULT_EXERCISES.find(e => e.module === 'speech_rhythm')?.params || {}
+  if (level === 'poem') return String(params[`content_${setId}_poem_text`] || '').split('\n').map(x => x.trim()).filter(Boolean)
+  return (params[`content_${setId}_${level}_lines`] || []).filter(x => x && String(x).trim())
+}
+
+const BUBBLE_EXERCISE = {
+  id: 'ex_7',
+  name: 'Bańki',
+  module: 'bubble_game',
+  schedule: [],
+  duration: 3,
+  points: 10,
+  instruction: 'W bańce pojawi się słowo albo krótkie zdanie. Przeczytaj je na głos, powoli i wyraźnie. Gdy głoska zabrzmi dobrze, bańka pęknie.',
+  alarmEnabled: true,
+  alarmAdvanceSec: 30,
+  alarmSound: 'phone',
+  visionEnabled: false,
+  params: { gameDurationSec: 120, bubbleSet: 'sz', bubbleLevel: 'words', bubbleTolerance: 'normal' },
+}
+
+const TONGUE_CLOSED_EXERCISE = {
+  id: 'ex_8',
+  name: 'Język za zamkniętymi ustami',
+  module: 'tongue_closed',
+  schedule: [],
+  duration: 3,
+  points: 10,
+  instruction: 'Zamknij usta. Językiem wypychaj policzek tam, gdzie pokazuje punkt na ekranie, a potem prowadź język dookoła między zębami a wargami. Usta przez cały czas zamknięte, oddychamy nosem.',
+  alarmEnabled: true,
+  alarmAdvanceSec: 30,
+  alarmSound: 'phone',
+  visionEnabled: false,
+  params: { holdSec: 3, holdReps: 4, lapSec: 6, laps: 3, useCamera: true },
+}
+
 // ── Migracja zapisanych ćwiczeń ──────────────────────────────────────────────
 // Ćwiczenia są trwale zapisane w przeglądarce (stc_exercises), więc nowe zestawy z kodu
 // same się tam nie pojawią. Ta funkcja dopisuje brakujące zestawy i treść TYLKO tam,
@@ -350,6 +419,8 @@ export function migrateExercises(exercises) {
   let changed = false
   let list = exercises || []
   if (!list.some(ex => ex.module === 'mix_speech')) { list = [...list, MIX_SPEECH_EXERCISE]; changed = true }
+  if (!list.some(ex => ex.module === 'bubble_game')) { list = [...list, BUBBLE_EXERCISE]; changed = true }
+  if (!list.some(ex => ex.module === 'tongue_closed')) { list = [...list, TONGUE_CLOSED_EXERCISE]; changed = true }
   const next = list.map(ex => {
     if (ex.module !== 'speech_rhythm') return ex
     const params = { ...(ex.params || {}) }
@@ -492,6 +563,8 @@ export const DEFAULT_EXERCISES = [
     visionEnabled: false,
   },
   MIX_SPEECH_EXERCISE,
+  BUBBLE_EXERCISE,
+  TONGUE_CLOSED_EXERCISE,
 ]
 
 // ── Generowanie planu dnia z szablonów ćwiczeń ───────────────────────────────
@@ -559,6 +632,26 @@ export function generateTodayPlan(exercises) {
 }
 
 export const MODULES = [
+  {
+    id: 'bubble_game',
+    name: 'Bańki',
+    emoji: '',
+    desc: 'Gra z mikrofonem: przeczytaj słowo lub zdanie, a bańka pęknie, gdy głoska zabrzmi dobrze',
+    available: true,
+    future: [],
+    requiresDevice: false,
+    minAge: null,
+  },
+  {
+    id: 'tongue_closed',
+    name: 'Język za zamkniętymi ustami',
+    emoji: '',
+    desc: 'Wypychanie policzków i okrążenia językiem przy zamkniętych ustach; kamera pilnuje zamknięcia ust',
+    available: true,
+    future: ['Wykrywanie wypchnięcia policzka z kamery'],
+    requiresDevice: false,
+    minAge: null,
+  },
   {
     id: 'mix_speech',
     name: 'Mowa mieszana',

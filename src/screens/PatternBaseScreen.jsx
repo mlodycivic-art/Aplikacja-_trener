@@ -22,7 +22,7 @@ const PRESET_PAIRS = [
 ]
 const pairKey = (p) => `${p.wrong}|${p.right}`
 const STATUS = {
-  pending:  { label: 'Do oceny',      color: '#64748B' },
+  pending:  { label: 'Do oceny',      color: 'var(--muted)' },
   approved: { label: 'Zaakceptowane', color: 'var(--green)' },
   rejected: { label: 'Odrzucone',     color: 'var(--red)' },
 }

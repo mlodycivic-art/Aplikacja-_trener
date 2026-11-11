@@ -131,7 +131,7 @@ export default function WeekScreen({ exercises, user, plan }) {
 
           {day.exercises.length > 0 && (
             <div style={{
-              background: '#fff', borderRadius: 12, boxShadow: 'var(--shadow-sm)',
+              background: 'var(--surface)', borderRadius: 12, boxShadow: 'var(--shadow-sm)',
               overflow: 'hidden',
               border: day.isToday ? '2px solid var(--primary)' : '1px solid var(--border)',
             }}>
@@ -139,7 +139,7 @@ export default function WeekScreen({ exercises, user, plan }) {
                 <div key={ex.id} style={{
                   display: 'flex', alignItems: 'center', gap: 10,
                   padding: '11px 14px',
-                  borderBottom: i < day.exercises.length - 1 ? '1px solid #F1F5F9' : 'none',
+                  borderBottom: i < day.exercises.length - 1 ? '1px solid var(--border)' : 'none',
                 }}>
                   <div style={{ flex: 1 }}>
                     <div style={{ fontWeight: 700, fontSize: 13 }}>{speechRhythmLabel(ex)}</div>

@@ -7,6 +7,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useSibilantMeter, pairVerdict, BAND_LO_HZ } from './games/useSibilantMeter'
 import PatternBaseScreen from './PatternBaseScreen'
+import QuickMicCalibration from './QuickMicCalibration'
 
 const SCALE_MIN = 2500   // dół wykresu (strona "SZ")
 const SCALE_MAX = 8500   // góra wykresu (strona "S")
@@ -203,7 +204,7 @@ function QuickTest() {
 
   const TakeColumn = ({ side, word, color }) => (
     <div style={{ flex: 1, minWidth: 0 }}>
-      <div style={{ fontSize: 12, fontWeight: 800, color: '#64748B', textTransform: 'uppercase', letterSpacing: .4 }}>
+      <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--muted)', textTransform: 'uppercase', letterSpacing: .4 }}>
         {side === 'wrong' ? 'Błędnie' : 'Poprawnie'}
       </div>
       <div style={{ fontSize: 22, fontWeight: 900, color, marginBottom: 8 }}>{word}</div>
@@ -323,24 +324,28 @@ function QuickTest() {
   )
 }
 
-// Ekran ma dwie części (naraz działa jedna, bo obie używają mikrofonu):
-//  - Szybki test: czy na tym urządzeniu w ogóle da się odróżnić s od sz (nic nie zapisuje),
-//  - Baza wzorców: trwałe nagrania oceniane przez logopedę, z których liczony jest próg.
+// Ekran ma trzy części (naraz działa jedna, bo wszystkie używają mikrofonu):
+//  - Kalibracja: 1 minuta, długie "ssss" i "szszsz" → próg dla gier,
+//  - Szybki test: podgląd pomiaru na żywo i porównanie par słów (nic nie zapisuje),
+//  - Baza wzorców: trwałe nagrania słów oceniane przez logopedę → dokładniejszy próg.
+const TABS = [
+  { id: 'cal',  label: 'Kalibracja',   sub: 'Jedna minuta: długie „ssss” i „szszsz”. Z tego powstaje próg dla gier.' },
+  { id: 'test', label: 'Szybki test',  sub: 'Podgląd na żywo: czy mikrofon odróżnia „soczek” od „socek”.' },
+  { id: 'base', label: 'Baza wzorców', sub: 'Nagrania słów oceniane przez logopedę. Dokładniejszy próg, ważniejszy niż kalibracja.' },
+]
+
 export default function SibilantTestScreen() {
-  const [tab, setTab] = useState('test')
+  const [tab, setTab] = useState('cal')
   return (
     <div>
       <h2 className="section-title">Mikrofon: głoski SZ</h2>
-      <p className="section-sub">
-        {tab === 'test'
-          ? 'Szybki test: czy mikrofon tego urządzenia odróżnia „soczek” od „socek”.'
-          : 'Baza wzorców: nagrania Karolka oceniane przez logopedę. Z nich powstaje jego próg.'}
-      </p>
+      <p className="section-sub">{TABS.find(t => t.id === tab).sub}</p>
       <div className="type-selector">
-        <button className={`type-btn ${tab === 'test' ? 'active' : ''}`} onClick={() => setTab('test')}>Szybki test</button>
-        <button className={`type-btn ${tab === 'base' ? 'active' : ''}`} onClick={() => setTab('base')}>Baza wzorców</button>
+        {TABS.map(t => (
+          <button key={t.id} className={`type-btn ${tab === t.id ? 'active' : ''}`} onClick={() => setTab(t.id)}>{t.label}</button>
+        ))}
       </div>
-      {tab === 'test' ? <QuickTest /> : <PatternBaseScreen />}
+      {tab === 'cal' ? <QuickMicCalibration /> : tab === 'test' ? <QuickTest /> : <PatternBaseScreen />}
     </div>
   )
 }

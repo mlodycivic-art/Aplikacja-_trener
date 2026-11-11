@@ -178,7 +178,7 @@ export default function TodayScreen({ user, plan, setPlan, setScreen, setActiveE
 
             {/* Panel wyboru czasu odłożenia */}
             {showSnoozePanel && (
-              <div style={{ marginTop: 10, background: '#F5F3FF', borderRadius: 10, padding: '10px 12px' }}>
+              <div style={{ marginTop: 10, background: 'var(--soft)', borderRadius: 10, padding: '10px 12px' }}>
                 <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--purple)', marginBottom: 8 }}>Odłóż o:</div>
                 <div style={{ display: 'flex', gap: 6 }}>
                   {[5, 10, 15].map(min => (

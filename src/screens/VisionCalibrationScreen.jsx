@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useStorage } from '../hooks/useStorage'
 import VisionWizard from './vision/VisionWizard'
+import QuickFaceCalibration from './vision/QuickFaceCalibration'
 import { AGE_GROUPS } from './vision/ageProfiles'
 
 // Hasło testowe logopedy — WYŁĄCZNIE na potrzeby wersji deweloperskiej.
@@ -118,6 +119,8 @@ export default function VisionCalibrationScreen({ exercises }) {
         Kalibracja ćwiczeń korzystających z kamery i mikrofonu — wykonuje ją wyłącznie logopeda.
       </p>
 
+      {!selectedId && <QuickFaceCalibration />}
+
       {!selectedId && (
         <>
           {visionExercises.length === 0 ? (
@@ -164,7 +167,7 @@ export default function VisionCalibrationScreen({ exercises }) {
                       style={{
                         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                         width: '100%', padding: '10px 12px', marginBottom: 8, borderRadius: 10,
-                        border: '1.5px solid #E2E8F0', background: '#F8FAFC', cursor: 'pointer',
+                        border: '1.5px solid #E2E8F0', background: 'var(--soft)', cursor: 'pointer',
                         fontSize: 13, fontWeight: 700,
                       }}
                     >

@@ -90,7 +90,7 @@ export default function AlarmBanner({ alarm, onDismiss, onGoToToday, onStartWith
 
           {!(alarm.params?.gameLink && onStartWithGame) && (
             <button onClick={onGoToToday} style={{
-              background: '#fff', color: '#9A3412', border: 'none',
+              background: 'var(--surface)', color: '#9A3412', border: 'none',
               borderRadius: 8, padding: '7px 13px', fontWeight: 900,
               fontSize: 12, cursor: 'pointer', whiteSpace: 'nowrap', flexShrink: 0,
             }}>

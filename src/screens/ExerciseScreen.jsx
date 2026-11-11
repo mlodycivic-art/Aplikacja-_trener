@@ -4,6 +4,8 @@ import { playSound, useTitleFlash, playApplause } from '../components/useAlarm'
 import { useMicRhythm } from './games/useMicRhythm'
 import BowlingReward, { pinsForPct } from './games/BowlingReward'
 import BalloonGame from './games/BalloonGame'
+import BubbleGame from './games/BubbleGame'
+import TongueClosedExercise from './TongueClosedExercise'
 import MixSpeechExercise from './MixSpeechExercise'
 import { addResult } from '../data/resultsStore'
 import { performancePoints } from '../data/points'
@@ -863,7 +865,7 @@ function RhythmTimer({ exercise, onComplete }) {
           <span style={{
             display: 'inline-block', fontSize: 11, fontWeight: 800,
             padding: '3px 10px', borderRadius: 999,
-            background: withNarrator ? '#EEF2FF' : '#F0FDF4',
+            background: withNarrator ? 'var(--active-bg)' : 'var(--soft)',
             color:      withNarrator ? 'var(--primary)' : 'var(--green)',
           }}>
             {withNarrator ? 'Z lektorem' : 'Samodzielnie (bez lektora)'}
@@ -875,7 +877,7 @@ function RhythmTimer({ exercise, onComplete }) {
         position: 'relative',
         display: 'flex', flexWrap: 'wrap', justifyContent: 'center',
         gap: '10px 12px', alignContent: 'center',
-        background: '#F8FAFC', borderRadius: 12, padding: '26px 14px 18px',
+        background: 'var(--soft)', borderRadius: 12, padding: '26px 14px 18px',
         minHeight: 90, marginBottom: 14, overflow: 'visible',
       }}>
         {dotPos && (
@@ -917,7 +919,7 @@ function RhythmTimer({ exercise, onComplete }) {
               style={{
                 position: 'relative',
                 color:      isActive ? '#6C63FF' : i < idx ? '#CBD5E1' : '#1E293B',
-                background: isActive ? '#EEF2FF' : 'transparent',
+                background: isActive ? 'var(--active-bg)' : 'transparent',
                 borderRadius: 6, padding: '3px 7px',
                 fontSize: 16, fontWeight: 700,
                 whiteSpace: 'nowrap',
@@ -979,7 +981,10 @@ function SzLipExercise({ exercise, onComplete }) {
     calibration = all[exercise.templateId] || all[exercise.id] || null
     simMode = localStorage.getItem('stc_debug_sim') === '1'
   } catch (e) {}
-  const calibrated = calibration?.status === 'calibrated'
+  let hasPersonal = false
+  try { hasPersonal = !!JSON.parse(localStorage.getItem('stc_face_profile') || 'null') } catch (e) {}
+  // Wystarczy jedno z dwojga: pełny kreator kalibracji albo osobista kalibracja ust
+  const calibrated = calibration?.status === 'calibrated' || hasPersonal
 
   if (!exercise.visionEnabled || mode === 'classic') return <SzLipTimer exercise={exercise} onComplete={onComplete} />
   if (mode === 'balloon') {
@@ -1117,7 +1122,7 @@ function DeviceTimer({ exercise, onComplete, gameWindow }) {
         {gameWindow && !gameWindow.closed && (
           <div style={{
             fontSize: 12, color: 'var(--muted)', marginBottom: 12,
-            padding: '8px 12px', background: '#F8FAFC', borderRadius: 8,
+            padding: '8px 12px', background: 'var(--soft)', borderRadius: 8,
             border: '1px solid var(--border)',
           }}>
             Możesz teraz zamknąć kartę z grą
@@ -1247,6 +1252,8 @@ export default function ExerciseScreen({ exercise, plan, setPlan, user, setUser,
       case 'tongue_position': return <TongueTimer   exercise={exercise} onHalfPoints={handleHalfPoints} onComplete={handleComplete} />
       case 'sz_lip':          return <SzLipExercise exercise={exercise} onComplete={handleComplete} />
       case 'mix_speech':      return <MixSpeechExercise exercise={exercise} onComplete={handleComplete} />
+      case 'bubble_game':     return <BubbleGame exercise={exercise} onComplete={handleComplete} />
+      case 'tongue_closed':   return <TongueClosedExercise exercise={exercise} onComplete={handleComplete} />
       case 'speech_rhythm':   return <RhythmTimer   exercise={exercise} onComplete={handleComplete} />
       default:                return <DeviceTimer   exercise={exercise} onComplete={handleComplete} gameWindow={gameWindow} />
     }
