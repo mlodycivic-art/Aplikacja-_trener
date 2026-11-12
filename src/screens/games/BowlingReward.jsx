@@ -47,10 +47,11 @@ function Pin({ x, y, fallen, order }) {
       transform: fallen ? `translate(${dx}px, ${dy}px) rotate(${angle}deg)` : 'none',
       opacity: fallen ? 0.28 : 1,
     }}>
-      <ellipse cx={x} cy={y + 12} rx="9" ry="3.5" fill="#00000033" />
-      <circle cx={x} cy={y} r="10" fill="#FFFFFF" stroke="#CBD5E1" strokeWidth="1.5" />
-      <circle cx={x} cy={y} r="6.2" fill="none" stroke="#DC2626" strokeWidth="2.4" />
-      <circle cx={x - 3} cy={y - 3.5} r="1.8" fill="#fff" />
+      <ellipse cx={x + 3} cy={y + 9} rx="11" ry="6" fill="#000" opacity=".38" filter="url(#bwSoft)" />
+      <circle cx={x} cy={y} r="10.5" fill="url(#bwPin)" stroke="#94A3B8" strokeWidth=".8" />
+      <circle cx={x} cy={y} r="6.2" fill="none" stroke="url(#bwRing)" strokeWidth="2.6" />
+      <circle cx={x} cy={y} r="2.6" fill="url(#bwPin)" />
+      <ellipse cx={x - 3.2} cy={y - 3.8} rx="2.6" ry="1.6" fill="#fff" opacity=".9" transform={`rotate(-35 ${x - 3.2} ${y - 3.8})`} />
     </g>
   )
 }
@@ -105,19 +106,28 @@ export default function BowlingReward({ pct, onDone, history = [] }) {
 
       <svg viewBox={`0 0 300 ${VIEW_H}`} width="100%" height="270"
         style={{ maxWidth: 250, animation: phase === 'impact' && !isMiss ? 'stcShake .25s linear 2' : 'none' }}>
-        {/* tor */}
-        <rect x="70" y="0" width="160" height={LANE_H} fill="#C98B4F" />
-        {PLANKS.map((p, i) => <rect key={i} x={p.x} y="0" width="20" height={LANE_H} fill={p.shade} />)}
-        {PLANKS.map((p, i) => <line key={`l${i}`} x1={p.x} y1="0" x2={p.x} y2={LANE_H} stroke="#00000018" strokeWidth="1" />)}
-        <rect x="70" y="0" width="160" height="150" fill="#00000010" />
+        <defs>
+          <linearGradient id="bwLane" x1="0" x2="1"><stop offset="0" stopColor="#A9662E" /><stop offset=".5" stopColor="#E0A566" /><stop offset="1" stopColor="#A9662E" /></linearGradient>
+          <linearGradient id="bwGloss" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#000" stopOpacity=".28" /><stop offset=".3" stopColor="#000" stopOpacity="0" /><stop offset=".62" stopColor="#fff" stopOpacity=".2" /><stop offset=".75" stopColor="#fff" stopOpacity="0" /><stop offset="1" stopColor="#000" stopOpacity=".12" /></linearGradient>
+          <linearGradient id="bwGutter" x1="0" x2="1"><stop offset="0" stopColor="#0F172A" /><stop offset=".5" stopColor="#475569" /><stop offset="1" stopColor="#0F172A" /></linearGradient>
+          <radialGradient id="bwPin" cx=".35" cy=".3" r=".9"><stop offset="0" stopColor="#FFFFFF" /><stop offset=".6" stopColor="#E2E8F0" /><stop offset="1" stopColor="#94A3B8" /></radialGradient>
+          <linearGradient id="bwRing" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stopColor="#F87171" /><stop offset="1" stopColor="#991B1B" /></linearGradient>
+          <radialGradient id="bwBall" cx=".34" cy=".28" r=".95"><stop offset="0" stopColor="#FCA5A5" /><stop offset=".3" stopColor="#DC2626" /><stop offset=".8" stopColor="#7F1D1D" /><stop offset="1" stopColor="#450A0A" /></radialGradient>
+          <filter id="bwSoft" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="2.4" /></filter>
+        </defs>
+        {/* tor: deski, światło od góry i pas połysku */}
+        <rect x="70" y="0" width="160" height={LANE_H} fill="url(#bwLane)" />
+        {PLANKS.map((p, i) => <rect key={i} x={p.x} y="0" width="20" height={LANE_H} fill={p.shade} opacity=".38" />)}
+        {PLANKS.map((p, i) => <line key={`l${i}`} x1={p.x} y1="0" x2={p.x} y2={LANE_H} stroke="#00000022" strokeWidth="1" />)}
+        <rect x="70" y="0" width="160" height={LANE_H} fill="url(#bwGloss)" />
         {/* rynny */}
-        <rect x="52" y="0" width="18" height={LANE_H} fill="#334155" />
-        <rect x="230" y="0" width="18" height={LANE_H} fill="#334155" />
+        <rect x="52" y="0" width="18" height={LANE_H} fill="url(#bwGutter)" />
+        <rect x="230" y="0" width="18" height={LANE_H} fill="url(#bwGutter)" />
         {/* znaczniki celowania */}
         {[-2, -1, 0, 1, 2].map(i => (
           <polygon key={i}
             points={`${150 + i * 26},${196 + Math.abs(i) * 10} ${145 + i * 26},${208 + Math.abs(i) * 10} ${155 + i * 26},${208 + Math.abs(i) * 10}`}
-            fill="#7C2D12" opacity="0.55" />
+            fill="#B91C1C" opacity="0.8" />
         ))}
 
         {PIN_POSITIONS.map((p, i) => (
@@ -127,15 +137,15 @@ export default function BowlingReward({ pct, onDone, history = [] }) {
 
         {/* kula */}
         <g style={ballStyle}>
-          <ellipse cx="150" cy="276" rx="15" ry="4.5" fill="#00000040" />
-          <circle cx="150" cy="262" r="16" fill="#1E3A8A" />
-          <circle cx="144" cy="255" r="5" fill="#93C5FD" opacity=".55" />
+          <ellipse cx="154" cy="272" rx="16" ry="9" fill="#000" opacity=".45" filter="url(#bwSoft)" />
+          <circle cx="150" cy="262" r="16" fill="url(#bwBall)" />
           <g style={{ transformBox: 'fill-box', transformOrigin: 'center', animation: phase === 'rolling' ? 'stcBallSpin .5s linear infinite' : 'none' }}>
             <circle cx="150" cy="262" r="16" fill="none" />
-            <circle cx="153" cy="256" r="2.1" fill="#0B1B4D" />
-            <circle cx="158" cy="262" r="2.1" fill="#0B1B4D" />
-            <circle cx="151" cy="265" r="2.1" fill="#0B1B4D" />
+            <circle cx="153" cy="256" r="2.2" fill="#2A0606" />
+            <circle cx="158" cy="262" r="2.2" fill="#2A0606" />
+            <circle cx="151" cy="265" r="2.2" fill="#2A0606" />
           </g>
+          <ellipse cx="143.5" cy="254" rx="5.5" ry="3.2" fill="#fff" opacity=".65" transform="rotate(-35 143.5 254)" />
         </g>
       </svg>
 

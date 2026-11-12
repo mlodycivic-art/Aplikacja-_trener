@@ -5,8 +5,11 @@ import { useMicRhythm } from './games/useMicRhythm'
 import BowlingReward, { pinsForPct } from './games/BowlingReward'
 import BalloonGame from './games/BalloonGame'
 import BubbleGame from './games/BubbleGame'
+import CarGame from './games/CarGame'
+import SafeGame from './games/SafeGame'
 import TongueClosedExercise from './TongueClosedExercise'
 import MixSpeechExercise from './MixSpeechExercise'
+import CarefulSpeechWindow from './CarefulSpeechWindow'
 import { addResult } from '../data/resultsStore'
 import { performancePoints } from '../data/points'
 
@@ -1254,6 +1257,9 @@ export default function ExerciseScreen({ exercise, plan, setPlan, user, setUser,
       case 'mix_speech':      return <MixSpeechExercise exercise={exercise} onComplete={handleComplete} />
       case 'bubble_game':     return <BubbleGame exercise={exercise} onComplete={handleComplete} />
       case 'tongue_closed':   return <TongueClosedExercise exercise={exercise} onComplete={handleComplete} />
+      case 'car_game':        return <CarGame exercise={exercise} onComplete={handleComplete} />
+      case 'safe_game':       return <SafeGame exercise={exercise} onComplete={handleComplete} />
+      case 'careful_speech':  return <CarefulSpeechWindow exercise={exercise} onComplete={handleComplete} />
       case 'speech_rhythm':   return <RhythmTimer   exercise={exercise} onComplete={handleComplete} />
       default:                return <DeviceTimer   exercise={exercise} onComplete={handleComplete} gameWindow={gameWindow} />
     }

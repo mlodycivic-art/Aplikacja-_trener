@@ -237,9 +237,39 @@ function DayChecks() {
   )
 }
 
+// Okna starannej mowy z ostatnich 14 dni: ile słów z listy padło dobrze, ile było do poprawy
+function CarefulWindows() {
+  const items = useResults('careful_window', 14)
+  if (!items.length) return null
+  const rows = [...items].reverse().slice(0, 10)
+  return (
+    <div className="card" style={{ marginBottom: 10 }} data-card="careful">
+      <div style={{ fontWeight: 800, fontSize: 15, marginBottom: 4 }}>Staranna mowa</div>
+      <p className="text-muted" style={{ fontSize: 12, marginBottom: 8 }}>
+        Słowa z własnej listy wyłapane w oknach starannej mowy. Liczy się każdy głos przy mikrofonie, wynik jest orientacyjny.
+      </p>
+      {rows.map(e => {
+        const d = e.data || {}
+        const judged = (d.good || 0) + (d.bad || 0)
+        return (
+          <div key={e.id} style={{ display: 'flex', justifyContent: 'space-between', gap: 8, padding: '6px 0', borderBottom: '1px solid var(--border)', fontSize: 13 }}>
+            <span>{new Date(e.ts).toLocaleDateString('pl-PL', { day: 'numeric', month: 'short' })}, {new Date(e.ts).toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' })} · {d.activeMin} min</span>
+            <span style={{ fontWeight: 700 }}>
+              <span style={{ color: 'var(--green)' }}>{d.good || 0} dobrze</span> · <span style={{ color: d.bad ? 'var(--yellow)' : 'var(--muted)' }}>{d.bad || 0} do poprawy</span>
+              {judged > 0 && <span className="text-muted"> · {Math.round(100 * d.good / judged)}%</span>}
+              {d.share != null && <span className="text-muted"> · sz {Math.round(d.share * 100)}%</span>}
+            </span>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
 export default function ParentExtras() {
   return (
     <>
+      <CarefulWindows />
       <WeeklySample />
       <NightLog />
       <DayChecks />

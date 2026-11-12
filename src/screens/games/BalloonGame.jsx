@@ -21,6 +21,9 @@ import { getAgeProfile } from '../vision/ageProfiles'
 import { getFaceProfile, personalPuckerLevel, personalMouthClosed } from '../../data/faceProfile'
 import { addResult } from '../../data/resultsStore'
 import { playGameSound } from '../../components/useAlarm'
+import SetupCheck from '../vision/SetupCheck'
+import { getSetupMode } from '../../data/setupCheck'
+import { getFaceMap } from '../../data/faceMap'
 
 const REQUIRED_LEVEL = { easy: 1, normal: 2, hard: 3 }   // wymagany poziom dzióbka (1–3)
 const DROPOUT_MS     = 250    // tak krótka utrata dzióbka nie zeruje utrzymania (mrugnięcie detektora)
@@ -136,7 +139,11 @@ export default function BalloonGame({ exercise, ageGroup, onComplete, onExit }) 
       setStatus('loading')
       const ok = await face.start()
       if (!ok) { setStatus('error'); return }
+      if (getSetupMode() !== 'off') { setStatus('setup'); return }   // kontrola stanowiska przed grą
     }
+    run()
+  }
+  const run = () => {
     g.current = { phase: 'pucker', holdMs: 0, cycles: 0, lastOkT: performance.now(), lastT: 0, startT: performance.now(), activeMs: 0, done: false }
     loggedRef.current = false
     setStatus('playing')
@@ -163,6 +170,10 @@ export default function BalloonGame({ exercise, ageGroup, onComplete, onExit }) 
     window.addEventListener('keyup', up)
     return () => { window.removeEventListener('keydown', down); window.removeEventListener('keyup', up) }
   }, [sim])
+
+  if (status === 'setup') {
+    return <SetupCheck face={face} reference={getFaceMap()?.setup || null} onReady={run} />
+  }
 
   // ── Widoki ──────────────────────────────────────────────────────────────────
   if (status === 'intro' || status === 'loading' || status === 'error') {
@@ -267,11 +278,19 @@ function BalloonSvg({ fill, color, pulse = 0, dim = false }) {
   const scale = 0.45 + 0.55 * Math.max(0, Math.min(1, fill)) + pulse * 0.04
   return (
     <svg width="100%" height="210" viewBox="0 0 200 210" style={{ maxWidth: 260, display: 'block', margin: '0 auto', opacity: dim ? .45 : 1, transition: 'opacity .2s' }} aria-hidden="true">
-      <g transform={`translate(100 108) scale(${scale}) translate(-100 -108)`} style={{ transition: 'transform .25s ease-out' }}>
+      <defs>
+        <radialGradient id="blShade" cx=".34" cy=".28" r=".9"><stop offset="0" stopColor="#fff" stopOpacity=".55" /><stop offset=".35" stopColor="#fff" stopOpacity="0" /><stop offset="1" stopColor="#000" stopOpacity=".42" /></radialGradient>
+        <filter id="blSoft" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="5" /></filter>
+      </defs>
+      <ellipse cx="100" cy="200" rx={34 * scale} ry="6" fill="#000" opacity=".22" filter="url(#blSoft)" />
+      <g transform={`translate(100 108) scale(${scale}) translate(-100 -108)`} style={{ transition: 'transform .35s cubic-bezier(.3,1.3,.5,1)' }}>
         <path d="M100 196 C 96 180, 106 172, 100 158" fill="none" stroke="#64748B" strokeWidth="2" />
         <ellipse cx="100" cy="88" rx="62" ry="72" fill={color} />
+        <ellipse cx="100" cy="88" rx="62" ry="72" fill="url(#blShade)" />
         <path d="M92 158 L108 158 L100 148 Z" fill={color} />
-        <ellipse cx="78" cy="60" rx="14" ry="22" fill="#fff" opacity=".28" transform="rotate(-18 78 60)" />
+        <path d="M92 158 L108 158 L100 148 Z" fill="#000" opacity=".25" />
+        <ellipse cx="76" cy="56" rx="11" ry="20" fill="#fff" opacity=".5" transform="rotate(-22 76 56)" />
+        <ellipse cx="124" cy="126" rx="18" ry="8" fill="#fff" opacity=".1" transform="rotate(-40 124 126)" />
       </g>
     </svg>
   )

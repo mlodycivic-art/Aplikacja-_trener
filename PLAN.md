@@ -40,8 +40,46 @@ Główna miara postępu: **% poprawnych głosek w 2-minutowej próbce swobodnej 
 | 8 | Osobista kalibracja ust (spoczynek + dzióbek) i poziom dzióbka względem własnego zakresu | `src/screens/vision/QuickFaceCalibration.jsx`, `src/data/faceProfile.js` | **nieuruchamiane na twarzy** |
 | 8 | Ćwiczenie „Język za zamkniętymi ustami” (policzki, okrążenia; kamera pilnuje zamkniętych ust i zbiera dane o policzkach) | `src/screens/TongueClosedExercise.jsx` | przeglądarka testowa bez kamery |
 | 8 | Skiny: Nowoczesny, Futurystyczny, Arena, Aurora, Studio + 9 akcentów | `src/data/theme.js`, `src/components/ThemePicker.jsx`, `main.css` | przeglądarka testowa (wszystkie skiny) |
+| 9 | Mapa ust: 9 pozycji (mmm, aaa, iii, uuu, szszsz, policzki, język pod wargami), ~47 miar, wzorce osoby, test trafności | `src/data/faceMap.js`, `src/screens/vision/FaceMapCalibration.jsx`, `useMouthControl.js` | testy na danych sztucznych; **na twarzy — do zrobienia** |
+| 9 | Gra Auto (policzki sterują, monety na przemian po obu stronach) | `src/screens/games/CarGame.jsx` | tryb testowy z klawiatury |
+| 9 | Gra Sejf (język prowadzi znacznik pokrętła do rowka, stała prędkość, poślizg przy pośpiechu) | `src/screens/games/SafeGame.jsx` | tryb testowy z klawiatury |
+| 9 | Kalibracja mikrofonu: sylaby (sa, sza, su, szu, ca, cza, cy, czy) i test trafności na 6 słowach | `src/screens/QuickMicCalibration.jsx`, `games/utterance.js` | tylko budowanie; **prawdziwy głos — do zrobienia** |
+| 9 | Grafika z oświetleniem (cienie, połysk, gradienty): kręgle, balon, auto, sejf | pliki gier | przeglądarka testowa |
+| 10 | Płynny ruch w grach (narastanie i wygaszanie prędkości w Aucie i Sejfie, łuk punktu-przewodnika) | pliki gier | tryb testowy |
+| 10 | Kontrola stanowiska przed kalibracją i grami z kamerą: kadr, odległość (z tęczówki), głowa, wysokość telefonu, światło, stabilność, pion; porównanie z warunkami z kalibracji | `src/data/setupCheck.js`, `src/screens/vision/SetupCheck.jsx` | testy na sztucznej twarzy; **kierunek „za nisko / za wysoko” i światło do sprawdzenia na urządzeniu** |
 
 PIN strefy dorosłego: `1234` (testowy, `src/components/PinGate.jsx`).
+
+## Pakiet 11 (12.11.2026): okno starannej mowy i baza własnych słów
+
+Zrobione, sprawdzone tylko na mowie syntetycznej (bez prawdziwego głosu):
+
+- **Staranna mowa** (ćwiczenie `careful_speech`, `CarefulSpeechWindow.jsx`): okno 5–30 min z harmonogramu, licznik,
+  blokada wygaszania ekranu, głosowe podsumowanie co kilka minut i na końcu (`data/voice.js`), wynik w `careful_window`,
+  karta w panelu Rodzic. Nie przerywa i nie pika w trakcie.
+- **Baza własnych słów** (Mikrofon → Słowa, `WordBaseScreen.jsx`, `data/wordBase.js`): lista startowa 40 słów
+  (30 włączonych: „sz” i „cz”; 10 z „ż / rz” wyłączonych), własne słowa, nagranie 3× na słowo, test trafności
+  w zdaniach, wzorzec proporcji głosek szumiących.
+- **Wyłapywanie słów bez rozpoznawania mowy** (`data/wordSpotter.js`): kształt słowa w 11 pasmach + dopasowanie DTW;
+  kształt nie rozróżnia „s” od „sz”, więc wzorzec „czemu” znajduje też „cemu”, a głoskę ocenia miernik szumu.
+  Test trafności dostraja progi i dopisuje wzorce „słowo w zdaniu”; słowa poniżej 2/3 trafień są wyłączane.
+
+Wynik na mowie syntetycznej (30 słów, zdania nieużyte do strojenia): monitorowanych 17–23 słów z 30;
+znalezione 85% wystąpień; ocena błędna w 4 przypadkach na 82 ocenione; 0–1 fałszywe trafienie na 6 zdań bez słów z listy.
+Na prawdziwym głosie dziecka te liczby będą inne i trzeba je zmierzyć testem trafności w aplikacji.
+
+**Rdzeń słowa (odmiany bez dopisywania):** przełącznik przy słowie „rdzeń / całe”. W trybie „rdzeń” wzorzec jest
+dopasowywany bez ostatniej sylaby („szkoł|a”, „socz|ek”), więc łapie też „szkoły”, „soczku”. Domyślnie rdzeń dla słów
+odmiennych z listy startowej; całe słowo dla nieodmiennych i z wymianą głoski („muszę” / „musisz”) oraz dla własnych
+słów krótszych niż 3 sylaby. Test trafności w trybie „rdzeń” ma jedno zdanie z odmianą.
+Na mowie syntetycznej: odmiany nieużyte w teście znalezione w 23 z 38 przypadków (całe słowa: 4 z 38),
+formy podstawowe bez zmian, 1 fałszywe trafienie na 12 zdań bez słów z listy (całe słowa: 0).
+
+Znane ograniczenia: liczy każdy głos przy mikrofonie;
+strona musi być na ekranie (wygaszony ekran wstrzymuje pomiar); mikrofon z 2 m niesprawdzony; słowa podobne brzmieniowo
+(„pokoju” / „pokaż”) mogą dać fałszywe trafienie.
+
+Dalej: rozpoznanie głosu dziecka po wysokości (pomijanie dorosłych), formy odmienione słów, „odcisk fali” dla głosek zniekształconych.
 
 ## Kolejka — w tej kolejności
 
@@ -62,7 +100,10 @@ PIN strefy dorosłego: `1234` (testowy, `src/components/PinGate.jsx`).
     i prawa strona różnią się wystarczająco, i dopiero wtedy budować detektor.
 11. **Kalibracja, która uczy się osoby**: aktualizować próg mikrofonu i profil ust z prób ocenionych
     jako pewne (dziś progi zmienia tylko ponowna kalibracja).
-12. **Sprawdzić ocenę „ż / rz” i głosek ciszących (ś, ć)** na nagraniach: miernik słyszy pewnie tylko sz, cz, s, c.
+12. **Po teście Mapy ust na twarzy**: jeśli trafność pozycji języka pod wargami jest poniżej 80%, zmienić
+    sterowanie Sejfu (np. tylko dwa policzki jako „lewo / prawo”) albo dodać pozycje pośrednie do kalibracji.
+13. **Balon i „Język za zamkniętymi ustami” przenieść na Mapę ust** (dziś używają prostszego profilu ust).
+14. **Sprawdzić ocenę „ż / rz" i głosek ciszących (ś, ć)** na nagraniach: miernik słyszy pewnie tylko sz, cz, s, c.
 
 ## Systemy wizyjne — plan
 
@@ -100,3 +141,11 @@ Kamera nie widzi pozycji języka przy zamkniętych ustach. Do tego służą dzie
 - Zmiany idą pakietami; po każdym test na urządzeniu i commit.
 - Trener, timery, alarmy, raporty i kreator kalibracji zachowują działanie przy każdej zmianie.
 - Nowe wyniki zapisujemy przez `resultsStore.js`, nie przez własne klucze localStorage.
+
+## Gdy aplikacja ma trafić do innych użytkowników (sprzedaż)
+
+- **Profile osób:** dziś kalibracje (Mapa ust, mikrofon, profil ust) są jedne na urządzenie. Potrzebne profile wielu ćwiczących.
+- **Dane dzieci:** obraz i dźwięk są przetwarzane na urządzeniu i nie są nigdzie wysyłane — to trzeba utrzymać i opisać (RODO, zgoda rodzica).
+- **Status prawny:** aplikacja, która deklaruje diagnozę lub leczenie, może podlegać przepisom o wyrobach medycznych. Do sprawdzenia z prawnikiem przed sprzedażą; bezpieczniejsze jest pozycjonowanie jako narzędzie do ćwiczeń zaleconych przez logopedę.
+- **Wiarygodność:** wyniki testów trafności z wielu osób (różny wiek, urządzenia, światło) jako podstawa obietnic w opisie produktu.
+- **Konta, kopia w chmurze, panel logopedy** — wspólny fundament z planowaną grą wieloosobową.

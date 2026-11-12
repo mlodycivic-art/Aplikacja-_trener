@@ -16,6 +16,7 @@
 //   meter.stop()
 
 import { useRef, useCallback, useMemo } from 'react'
+import { bandVector } from '../../data/wordSpotter'
 
 // ── Parametry pomiaru (wspólne dla całego testu) ─────────────────────────────
 export const BAND_LO_HZ  = 2000   // dolna granica pasma szumu głosek
@@ -143,7 +144,8 @@ export function useSibilantMeter() {
         const cog  = band > 0 ? weighted / band : 0
         // loud = słychać głos lub szum wyraźnie ponad tło (do wykrywania początku i końca wypowiedzi)
         const loud = hiss || (voice + band) > (noiseVoice + noiseBand) * LOUD_OVER_NOISE
-        const frame = { t: now, hiss, loud, cog, db: 10 * Math.log10(band + 1e-20) }
+        // bands: kształt widma w 11 pasmach — do wyłapywania własnych słów (data/wordSpotter.js)
+        const frame = { t: now, hiss, loud, cog, db: 10 * Math.log10(band + 1e-20), bands: bandVector(spec, noise, binHz) }
 
         const frames = framesRef.current
         frames.push(frame)

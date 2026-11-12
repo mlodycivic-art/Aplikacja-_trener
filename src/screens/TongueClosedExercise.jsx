@@ -14,6 +14,9 @@ import { checkMouthClosed } from './vision/detectors'
 import { getFaceProfile, personalMouthClosed } from '../data/faceProfile'
 import { addResult } from '../data/resultsStore'
 import { playGameSound } from '../components/useAlarm'
+import SetupCheck from './vision/SetupCheck'
+import { getSetupMode } from '../data/setupCheck'
+import { getFaceMap } from '../data/faceMap'
 
 const FACE_LOST_MS = 1200
 const CHEEK_POINTS = [205, 425, 214, 434, 50, 280]   // punkty siatki twarzy na policzkach (pary lewa/prawa)
@@ -119,7 +122,15 @@ export default function TongueClosedExercise({ exercise, onComplete }) {
       }
     }
     const cur = phases[Math.min(s.idx, phases.length - 1)]
-    setUi({ idx: s.idx, t: Math.min(1, s.ms / cur.ms), mouth, kind: cur.kind, label: cur.label })
+    // kąt punktu-przewodnika dogania cel płynnie (krótszą drogą po okręgu)
+    const want = targetAngle(cur.kind, Math.min(1, s.ms / cur.ms))
+    if (s.shown == null) s.shown = want
+    else {
+      let dA = want - s.shown
+      dA = Math.atan2(Math.sin(dA), Math.cos(dA))
+      s.shown += dA * (1 - Math.exp(-dt / 160))
+    }
+    setUi({ idx: s.idx, t: Math.min(1, s.ms / cur.ms), mouth, kind: cur.kind, label: cur.label, angle: s.shown })
     rafRef.current = requestAnimationFrame(tick)
   }
 
@@ -131,6 +142,10 @@ export default function TongueClosedExercise({ exercise, onComplete }) {
     }
     cameraRef.current = cam
     setCamera(cam)
+    if (cam && getSetupMode() !== 'off') { setStatus('setup'); return }   // kontrola stanowiska przed ćwiczeniem
+    run()
+  }
+  const run = () => {
     phasesRef.current = buildPhases(p)
     g.current = { idx: 0, ms: 0, lastT: 0, activeMs: 0, totalMs: 0, closedMs: 0, done: false, feat: {} }
     setStatus('playing')
@@ -139,6 +154,10 @@ export default function TongueClosedExercise({ exercise, onComplete }) {
   }
 
   useEffect(() => () => { cancelAnimationFrame(rafRef.current); face.stop() }, [face])
+
+  if (status === 'setup') {
+    return <SetupCheck face={face} reference={getFaceMap()?.setup || null} onReady={run} />
+  }
 
   if (status === 'intro' || status === 'loading') {
     return (
@@ -182,7 +201,7 @@ export default function TongueClosedExercise({ exercise, onComplete }) {
         <div className="progress-fill colored" style={{ width: `${((ui.idx + ui.t) / phases.length) * 100}%` }} />
       </div>
 
-      <Orbit angle={targetAngle(ui.kind, ui.t)} t={ui.t} kind={ui.kind} paused={paused} />
+      <Orbit angle={ui.angle ?? targetAngle(ui.kind, ui.t)} t={ui.t} kind={ui.kind} paused={paused} />
 
       <div style={{ fontWeight: 800, fontSize: 19, minHeight: 26, color: paused ? 'var(--orange)' : 'var(--text)' }}>
         {ui.mouth === 'open' ? 'Zamknij usta — czekam' : ui.mouth === 'none' ? 'Nie widzę twarzy — usiądź przed kamerą' : ui.label}

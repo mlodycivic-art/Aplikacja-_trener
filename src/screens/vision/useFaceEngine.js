@@ -25,6 +25,7 @@ export function useFaceEngine() {
   const landmarkerRef = useRef(null)
   const rafRef        = useRef(null)
   const pointsRef     = useRef(null)
+  const blendRef      = useRef(null)
   const lastSeenRef   = useRef(0)
   const stateRef      = useRef('off')
   const errorRef      = useRef('')
@@ -38,6 +39,9 @@ export function useFaceEngine() {
         const result = landmarker.detectForVideo(video, performance.now())
         const points = result.faceLandmarks && result.faceLandmarks[0]
         pointsRef.current = points || null
+        // ~50 gotowych miar mimiki (ściągnięcie warg, otwarcie żuchwy…) jako { nazwa: wartość 0–1 }
+        const cats = points && result.faceBlendshapes && result.faceBlendshapes[0] && result.faceBlendshapes[0].categories
+        if (cats) { const b = {}; for (const c of cats) b[c.categoryName] = c.score; blendRef.current = b } else blendRef.current = null
         if (points) lastSeenRef.current = performance.now()
       } catch (e) { /* pojedyncza klatka może się nie udać — próbujemy następną */ }
     }
@@ -86,12 +90,12 @@ export function useFaceEngine() {
       try {
         landmarker = await FaceLandmarker.createFromOptions(resolver, {
           baseOptions: { modelAssetPath: MODEL_URL, delegate: 'GPU' },
-          runningMode: 'VIDEO', numFaces: 1,
+          runningMode: 'VIDEO', numFaces: 1, outputFaceBlendshapes: true,
         })
       } catch (e) {
         landmarker = await FaceLandmarker.createFromOptions(resolver, {
           baseOptions: { modelAssetPath: MODEL_URL, delegate: 'CPU' },
-          runningMode: 'VIDEO', numFaces: 1,
+          runningMode: 'VIDEO', numFaces: 1, outputFaceBlendshapes: true,
         })
       }
       if (runId !== runIdRef.current) { try { landmarker.close() } catch (e) {} ; return false }
@@ -112,6 +116,9 @@ export function useFaceEngine() {
   }, [loop])
 
   const getPoints     = useCallback(() => pointsRef.current, [])
+  const getBlendshapes = useCallback(() => blendRef.current, [])
+  // Element wideo — WYŁĄCZNIE do podglądu dla dorosłego podczas kalibracji (dziecko obrazu nie widzi)
+  const getVideo      = useCallback(() => videoRef.current, [])
   const getState      = useCallback(() => stateRef.current, [])
   const getError      = useCallback(() => errorRef.current, [])
   const msSinceFace   = useCallback(() => (lastSeenRef.current ? performance.now() - lastSeenRef.current : Infinity), [])
@@ -121,7 +128,7 @@ export function useFaceEngine() {
   }, [])
 
   return useMemo(
-    () => ({ start, stop, getPoints, getState, getError, msSinceFace, getCanvasSize }),
-    [start, stop, getPoints, getState, getError, msSinceFace, getCanvasSize]
+    () => ({ start, stop, getPoints, getBlendshapes, getVideo, getState, getError, msSinceFace, getCanvasSize }),
+    [start, stop, getPoints, getBlendshapes, getVideo, getState, getError, msSinceFace, getCanvasSize]
   )
 }

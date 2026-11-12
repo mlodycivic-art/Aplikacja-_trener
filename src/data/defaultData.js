@@ -350,15 +350,15 @@ export const GAME_WORDS = {
   sz: [
     'szafa', 'szalik', 'szuflada', 'szyja', 'szopa', 'szum', 'szelki', 'szpak', 'szkoła', 'sznurek',
     'kasza', 'koszyk', 'myszka', 'gruszka', 'poduszka', 'kieszeń', 'wieszak', 'maszyna', 'daszek', 'uszy',
-    'kosz', 'mysz', 'afisz', 'kapelusz', 'listonosz', 'plusz', 'grosz', 'tusz',
+    'kosz', 'mysz', 'afisz', 'kapelusz', 'pióropusz', 'plusz', 'grosz', 'tusz',
   ],
   cz: [
-    'czapka', 'czajnik', 'czekolada', 'czytanka', 'czoło', 'czubek', 'człowiek', 'czwartek', 'czerwony', 'czysty',
+    'czapka', 'czajnik', 'czekolada', 'czytanka', 'czoło', 'czubek', 'człowiek', 'czwartek', 'czerwony', 'czapla',
     'teczka', 'taczka', 'paczka', 'kaczka', 'beczka', 'rączka', 'pączek', 'oczy', 'liczydło', 'wieczór',
     'klucz', 'mecz', 'płacz', 'bicz', 'warkocz', 'bogacz', 'tłumacz', 'badacz',
   ],
   'ż': [
-    'żaba', 'żuk', 'żyrafa', 'żółw', 'żaglówka', 'żelazko', 'żarówka', 'rzeka', 'rzodkiewka', 'rzęsy',
+    'żaba', 'żuk', 'żyrafa', 'żółw', 'żaglówka', 'żelazko', 'żarówka', 'rzeka', 'rzodkiewka', 'rzepa',
     'jeżyk', 'róża', 'wieża', 'duży', 'leżak', 'burza', 'morze', 'korzeń', 'jarzyny', 'orzech',
     'drzewo', 'grzyb', 'brzeg', 'drzwi',
   ],
@@ -411,6 +411,27 @@ const TONGUE_CLOSED_EXERCISE = {
   params: { holdSec: 3, holdReps: 4, lapSec: 6, laps: 3, useCamera: true },
 }
 
+const CAR_EXERCISE = {
+  id: 'ex_9', name: 'Auto', module: 'car_game', schedule: [], duration: 3, points: 10,
+  instruction: 'Usta zamknięte. Wypchnij językiem lewy policzek, żeby skręcić w lewo, prawy — żeby skręcić w prawo. Zbieraj monety i omijaj pachołki.',
+  alarmEnabled: true, alarmAdvanceSec: 30, alarmSound: 'phone', visionEnabled: false,
+  params: { gameDurationSec: 120 },
+}
+
+const SAFE_EXERCISE = {
+  id: 'ex_10', name: 'Sejf', module: 'safe_game', schedule: [], duration: 4, points: 10,
+  instruction: 'Usta zamknięte. Prowadź język dookoła między zębami a wargami, tuż przed znacznikiem pokrętła. Doprowadź znacznik do rowka i zatrzymaj, aż rygiel wpadnie. Liczy się spokojny, dokładny ruch.',
+  alarmEnabled: true, alarmAdvanceSec: 30, alarmSound: 'phone', visionEnabled: false,
+  params: { bolts: 5 },
+}
+
+const CAREFUL_EXERCISE = {
+  id: 'ex_11', name: 'Staranna mowa', module: 'careful_speech', schedule: [], duration: 15, points: 15,
+  instruction: 'Przez ten czas mów najstaranniej, jak umiesz: przy lekcjach, w rozmowie, przy czytaniu na głos. Telefon leży na stole, najdalej 2 metry od Ciebie. Aplikacja słucha, liczy słowa z Twojej listy i co kilka minut mówi wynik. Nie przerywa i nie poprawia.',
+  alarmEnabled: true, alarmAdvanceSec: 30, alarmSound: 'phone', visionEnabled: false,
+  params: { windowMin: 15, summaryEveryMin: 5, voice: true },
+}
+
 // ── Migracja zapisanych ćwiczeń ──────────────────────────────────────────────
 // Ćwiczenia są trwale zapisane w przeglądarce (stc_exercises), więc nowe zestawy z kodu
 // same się tam nie pojawią. Ta funkcja dopisuje brakujące zestawy i treść TYLKO tam,
@@ -421,6 +442,9 @@ export function migrateExercises(exercises) {
   if (!list.some(ex => ex.module === 'mix_speech')) { list = [...list, MIX_SPEECH_EXERCISE]; changed = true }
   if (!list.some(ex => ex.module === 'bubble_game')) { list = [...list, BUBBLE_EXERCISE]; changed = true }
   if (!list.some(ex => ex.module === 'tongue_closed')) { list = [...list, TONGUE_CLOSED_EXERCISE]; changed = true }
+  if (!list.some(ex => ex.module === 'car_game')) { list = [...list, CAR_EXERCISE]; changed = true }
+  if (!list.some(ex => ex.module === 'safe_game')) { list = [...list, SAFE_EXERCISE]; changed = true }
+  if (!list.some(ex => ex.module === 'careful_speech')) { list = [...list, CAREFUL_EXERCISE]; changed = true }
   const next = list.map(ex => {
     if (ex.module !== 'speech_rhythm') return ex
     const params = { ...(ex.params || {}) }
@@ -565,6 +589,9 @@ export const DEFAULT_EXERCISES = [
   MIX_SPEECH_EXERCISE,
   BUBBLE_EXERCISE,
   TONGUE_CLOSED_EXERCISE,
+  CAR_EXERCISE,
+  SAFE_EXERCISE,
+  CAREFUL_EXERCISE,
 ]
 
 // ── Generowanie planu dnia z szablonów ćwiczeń ───────────────────────────────
@@ -632,6 +659,21 @@ export function generateTodayPlan(exercises) {
 }
 
 export const MODULES = [
+  {
+    id: 'careful_speech', name: 'Staranna mowa', emoji: '',
+    desc: 'Okno starannej mowy: umówiony czas mówienia najstaranniej, jak się umie. Aplikacja wyłapuje słowa z własnej bazy, ocenia w nich głoskę i co kilka minut mówi wynik (wymaga kalibracji mikrofonu i nagrania bazy słów)',
+    available: true, future: [], requiresDevice: false, minAge: null,
+  },
+  {
+    id: 'car_game', name: 'Auto', emoji: '',
+    desc: 'Gra z kamerą: wypychanie policzków językiem steruje autem (wymaga kalibracji „Mapa ust”)',
+    available: true, future: [], requiresDevice: false, minAge: null,
+  },
+  {
+    id: 'safe_game', name: 'Sejf', emoji: '',
+    desc: 'Gra z kamerą: powolne okrążenia językiem wokół zamkniętych ust otwierają rygle sejfu (wymaga kalibracji „Mapa ust”)',
+    available: true, future: [], requiresDevice: false, minAge: null,
+  },
   {
     id: 'bubble_game',
     name: 'Bańki',

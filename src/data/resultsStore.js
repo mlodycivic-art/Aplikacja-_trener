@@ -16,6 +16,7 @@
 //   'tongue_check'   { position: 'up'|'mid'|'down' }
 //   'night_log'      { position: 'up'|'mid'|'down', mouth: 'closed'|'open', forDate }
 //   'weekly_sample'  { good, bad, pct, durationSec }
+//   'careful_window' { plannedMin, activeMin, good, bad, unclear, sz, s, share, baselineShare, words, judged, monitored, points }
 
 import { useEffect, useState, useCallback } from 'react'
 

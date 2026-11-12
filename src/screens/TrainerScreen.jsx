@@ -868,6 +868,64 @@ export default function TrainerScreen({ exercises, setExercises, plan, setPlan }
               </div>
             </>)}
 
+            {editEx.module === 'careful_speech' && (<>
+              <div className="divider" />
+              <label className="form-label">Długość okna starannej mowy</label>
+              <div className="type-selector">
+                {[5, 10, 15, 20, 30].map(min => (
+                  <button key={min} className={`type-btn ${(form.params?.windowMin ?? 15) === min ? 'active' : ''}`}
+                    onClick={() => setForm(prev => ({ ...prev, duration: min, params: { ...prev.params, windowMin: min } }))}>{min} min</button>
+                ))}
+              </div>
+              <label className="form-label">Głosowe podsumowanie w trakcie</label>
+              <div className="type-selector">
+                {[{ v: 0, label: 'Tylko na końcu' }, { v: 3, label: 'Co 3 min' }, { v: 5, label: 'Co 5 min' }, { v: 10, label: 'Co 10 min' }].map(o => (
+                  <button key={o.v} className={`type-btn ${(form.params?.summaryEveryMin ?? 5) === o.v ? 'active' : ''}`}
+                    onClick={() => setParam('summaryEveryMin', o.v)}>{o.label}</button>
+                ))}
+              </div>
+              <label className="form-label">Głos</label>
+              <div className="type-selector">
+                {[{ v: true, label: 'Włączony' }, { v: false, label: 'Wyłączony (wynik tylko na ekranie)' }].map(o => (
+                  <button key={String(o.v)} className={`type-btn ${(form.params?.voice !== false) === o.v ? 'active' : ''}`}
+                    onClick={() => setParam('voice', o.v)}>{o.label}</button>
+                ))}
+              </div>
+              <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 14 }}>
+                Godziny okien ustaw w harmonogramie powyżej, tak jak dla innych ćwiczeń. Okno wyłapuje słowa z bazy nagranej w zakładce
+                Mikrofon → Słowa i ocenia je po kalibracji mikrofonu. Bez bazy liczy tylko proporcję głosek szumiących.
+                Głos podsumowań to polski głos zainstalowany w urządzeniu.
+              </div>
+            </>)}
+
+            {editEx.module === 'car_game' && (<>
+              <div className="divider" />
+              <label className="form-label">Czas jazdy</label>
+              <div className="type-selector">
+                {[60, 120, 180, 300].map(sec => (
+                  <button key={sec} className={`type-btn ${(form.params?.gameDurationSec ?? 120) === sec ? 'active' : ''}`}
+                    onClick={() => setParam('gameDurationSec', sec)}>{sec / 60} min</button>
+                ))}
+              </div>
+              <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 14 }}>
+                Sterowanie kamerą wymaga kalibracji „Mapa ust” z trafnością policzków co najmniej 80% (zakładka Kalibracja).
+              </div>
+            </>)}
+
+            {editEx.module === 'safe_game' && (<>
+              <div className="divider" />
+              <label className="form-label">Liczba rygli</label>
+              <div className="type-selector">
+                {[3, 5, 10].map(n => (
+                  <button key={n} className={`type-btn ${(form.params?.bolts ?? 5) === n ? 'active' : ''}`}
+                    onClick={() => setParam('bolts', n)}>{n}</button>
+                ))}
+              </div>
+              <div style={{ fontSize: 12, color: 'var(--muted)', marginBottom: 14 }}>
+                Gra wymaga kalibracji „Mapa ust” z trafnością pozycji języka dookoła ust co najmniej 80%.
+              </div>
+            </>)}
+
             {editEx.module === 'tongue_closed' && (<>
               <div className="divider" />
               <span style={{ fontWeight: 800, fontSize: 14, display: 'block', marginBottom: 10 }}>Ustawienia ćwiczenia</span>

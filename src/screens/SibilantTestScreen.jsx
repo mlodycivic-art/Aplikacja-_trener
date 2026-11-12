@@ -8,6 +8,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useSibilantMeter, pairVerdict, BAND_LO_HZ } from './games/useSibilantMeter'
 import PatternBaseScreen from './PatternBaseScreen'
 import QuickMicCalibration from './QuickMicCalibration'
+import WordBaseScreen from './WordBaseScreen'
 
 const SCALE_MIN = 2500   // dół wykresu (strona "SZ")
 const SCALE_MAX = 8500   // góra wykresu (strona "S")
@@ -332,6 +333,7 @@ const TABS = [
   { id: 'cal',  label: 'Kalibracja',   sub: 'Jedna minuta: długie „ssss” i „szszsz”. Z tego powstaje próg dla gier.' },
   { id: 'test', label: 'Szybki test',  sub: 'Podgląd na żywo: czy mikrofon odróżnia „soczek” od „socek”.' },
   { id: 'base', label: 'Baza wzorców', sub: 'Nagrania słów oceniane przez logopedę. Dokładniejszy próg, ważniejszy niż kalibracja.' },
+  { id: 'words', label: 'Słowa', sub: 'Własne słowa wyłapywane w oknie starannej mowy: lista, nagranie wzorców, test trafności.' },
 ]
 
 export default function SibilantTestScreen() {
@@ -345,7 +347,7 @@ export default function SibilantTestScreen() {
           <button key={t.id} className={`type-btn ${tab === t.id ? 'active' : ''}`} onClick={() => setTab(t.id)}>{t.label}</button>
         ))}
       </div>
-      {tab === 'cal' ? <QuickMicCalibration /> : tab === 'test' ? <QuickTest /> : <PatternBaseScreen />}
+      {tab === 'cal' ? <QuickMicCalibration /> : tab === 'test' ? <QuickTest /> : tab === 'words' ? <WordBaseScreen /> : <PatternBaseScreen />}
     </div>
   )
 }

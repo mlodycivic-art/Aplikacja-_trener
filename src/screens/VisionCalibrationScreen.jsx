@@ -2,6 +2,9 @@ import { useState } from 'react'
 import { useStorage } from '../hooks/useStorage'
 import VisionWizard from './vision/VisionWizard'
 import QuickFaceCalibration from './vision/QuickFaceCalibration'
+import FaceMapCalibration from './vision/FaceMapCalibration'
+import { SetupDiagram } from './vision/SetupCheck'
+import { getSetupMode, setSetupMode } from '../data/setupCheck'
 import { AGE_GROUPS } from './vision/ageProfiles'
 
 // Hasło testowe logopedy — WYŁĄCZNIE na potrzeby wersji deweloperskiej.
@@ -119,6 +122,8 @@ export default function VisionCalibrationScreen({ exercises }) {
         Kalibracja ćwiczeń korzystających z kamery i mikrofonu — wykonuje ją wyłącznie logopeda.
       </p>
 
+      {!selectedId && <SetupModeCard />}
+      {!selectedId && <FaceMapCalibration />}
       {!selectedId && <QuickFaceCalibration />}
 
       {!selectedId && (
@@ -293,6 +298,29 @@ export default function VisionCalibrationScreen({ exercises }) {
           </button>
         </>
       )}
+    </div>
+  )
+}
+
+// Jak ostro aplikacja pilnuje stanowiska w grach (kalibracja zawsze używa kontroli dokładnej)
+function SetupModeCard() {
+  const [mode, setMode] = useState(getSetupMode())
+  const pick = (m) => { setSetupMode(m); setMode(m) }
+  return (
+    <div className="card">
+      <div style={{ fontWeight: 800, fontSize: 17 }}>Stanowisko do ćwiczeń</div>
+      <SetupDiagram />
+      <label className="form-label" style={{ marginTop: 12 }}>Kontrola stanowiska przed grami z kamerą</label>
+      <div className="type-selector">
+        {[{ id: 'normal', label: 'Zwykła' }, { id: 'relaxed', label: 'Poluzowana' }, { id: 'off', label: 'Wyłączona' }].map(o => (
+          <button key={o.id} className={`type-btn ${mode === o.id ? 'active' : ''}`} onClick={() => pick(o.id)}>{o.label}</button>
+        ))}
+      </div>
+      <div className="text-muted" style={{ fontSize: 13, lineHeight: 1.5 }}>
+        Przed grą aplikacja sprawdza kadr, odległość, pozycję głowy, wysokość telefonu, światło i stabilność,
+        i porównuje je z warunkami z kalibracji. „Poluzowana” przydaje się poza domem. Przy „Wyłączonej” wynik
+        gry jest oznaczony jako zrobiony bez kontroli. Kalibracja zawsze wymaga kontroli dokładnej.
+      </div>
     </div>
   )
 }

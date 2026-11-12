@@ -4,6 +4,8 @@
 //   Balon           1 pkt za 3 dzióbki, +10 pkt za napompowany balon
 //   Mowa mieszana   1 pkt za słowo, 2 pkt za słowo poprawione po odsłuchu
 //   Bańki           10 pkt za bańkę przebitą dobrą głoską; 3 pkt w trybie treningowym (bez oceny)
+//   Auto            2 pkt za monetę (tylko przy sterowaniu kamerą)
+//   Sejf            4 pkt za rygiel, +10 pkt za otwarty sejf
 //   Gdzie jest język?  1 pkt za każdą odpowiedź, niezależnie od treści
 //                      (żeby nie opłacało się klikać "u góry" dla punktów)
 //   Pozostałe ćwiczenia: jak dotąd (stała liczba punktów)
@@ -21,6 +23,9 @@ export function pointsForEntry(entry) {
     case 'bowling_throw': return d.pins === 10 ? 10 : Math.floor((d.pins || 0) / 2)
     case 'balloon_game':  return Math.floor((d.cycles || 0) / 3) + (d.completed ? 10 : 0)
     case 'mix_trial':     return d.selfRating === 'good' && d.attempts > 1 ? 2 : 1
+    case 'car_game':      return d.points || 0   // 2 pkt za monetę; 0 przy grze przyciskami (bez kamery)
+    case 'safe_game':     return d.points || 0   // 4 pkt za rygiel + 10 za otwarty sejf
+    case 'careful_window': return d.points || 0  // 5 pkt za okno + 2 pkt za każde słowo z listy powiedziane dobrze (najwyżej 40)
     case 'bubble_game':   return d.points || 0   // 10 pkt za bańkę z oceną głoski, 3 pkt w trybie treningowym
     default:              return 0
   }
@@ -32,6 +37,9 @@ const MODULE_RESULT_TYPE = {
   sz_lip:        'balloon_game',
   mix_speech:    'mix_trial',
   bubble_game:   'bubble_game',
+  car_game:      'car_game',
+  safe_game:     'safe_game',
+  careful_speech: 'careful_window',
 }
 
 // Punkty za ćwiczenie zakończone teraz, na podstawie wpisów zapisanych od sinceTs.

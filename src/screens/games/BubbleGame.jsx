@@ -27,6 +27,9 @@ const MIN_UTTER_MS   = 250
 const MAX_UTTER_MS   = 7000
 const COLORS = ['#2563EB', '#DB2777', '#16A34A', '#EA580C', '#7C3AED', '#0891B2']
 
+// Próg nadaje się do oceniania, gdy jest pewny i (jeśli robiono test na słowach) trafność była ≥ 70%
+const usable = (th) => !!th && th.quality === 'good' && (th.accuracy == null || th.accuracy >= 0.7)
+
 function shuffle(a) { const r = [...a]; for (let i = r.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [r[i], r[j]] = [r[j], r[i]] } return r }
 
 function loadItems(setId, level) {
@@ -160,7 +163,7 @@ export default function BubbleGame({ exercise, onComplete }) {
 
   const begin = async () => {
     const th = getThreshold()
-    thresholdRef.current = th && th.quality === 'good' ? th : null
+    thresholdRef.current = usable(th) ? th : null
     setMode(thresholdRef.current || sim ? 'judged' : 'training')
     if (!sim) {
       setStatus('starting')
@@ -202,7 +205,7 @@ export default function BubbleGame({ exercise, onComplete }) {
   // ── Widoki ──────────────────────────────────────────────────────────────────
   if (status === 'intro' || status === 'starting' || status === 'error') {
     const th = getThreshold()
-    const judged = (th && th.quality === 'good') || sim
+    const judged = usable(th) || sim
     return (
       <div className="card" style={{ textAlign: 'center' }}>
         <Bubble text="szum" color={COLORS[0]} fx="listen" small />

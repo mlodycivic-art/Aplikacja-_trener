@@ -42,7 +42,7 @@ export default function App() {
   // Jednorazowe dopisanie nowych zestawów głoskowych do zapisanych ćwiczeń (bez nadpisywania treści trenera)
   useEffect(() => {
     // Wersja danych: migracja uruchamia się raz, żeby zestaw usunięty później przez trenera nie wracał
-    const DATA_VERSION = 4
+    const DATA_VERSION = 6
     let done = 0
     try { done = Number(localStorage.getItem('stc_data_version') || 0) } catch (e) {}
     if (done >= DATA_VERSION) return
