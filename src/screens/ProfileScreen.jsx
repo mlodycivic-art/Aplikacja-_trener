@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { savePreset, fetchPreset, applyPreset, appliedPresetDate } from '../data/presets'
 import { DEFAULT_USER, DEFAULT_EXERCISES, generateTodayPlan } from '../data/defaultData'
 
 const DIAGNOSED_PROBLEMS = [
@@ -16,6 +17,63 @@ const DIAGNOSED_PROBLEMS = [
   { value: 'motivation_regularity', label: 'Problemy z motywacją i regularnością ćwiczeń' },
   { value: 'face_fitness', label: 'Dbanie o wygląd twarzy / face fitness' },
 ]
+
+const fmtDate = (iso) => { try { return new Date(iso).toLocaleString('pl-PL', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' }) } catch (e) { return '—' } }
+
+// Ustawienia domyślne: zapis ustawień tego urządzenia do pliku w aplikacji i wczytanie ich na innym urządzeniu
+function PresetCard() {
+  const [inApp, setInApp] = useState(undefined)      // undefined = sprawdzam, null = brak pliku
+  const [msg, setMsg] = useState(null)
+  const applied = appliedPresetDate()
+  useEffect(() => { let on = true; fetchPreset().then(p => { if (on) setInApp(p) }); return () => { on = false } }, [])
+
+  const save = async () => {
+    const how = await savePreset()
+    setMsg(how)
+    if (how === 'saved') fetchPreset().then(setInApp)
+  }
+  const load = () => {
+    if (!inApp) return
+    if (!window.confirm('Wczytać ustawienia domyślne? Zastąpią ćwiczenia, godziny, listę słów i wygląd na tym urządzeniu. Wyniki i kalibracje zostają. Dzisiejszy plan zbuduje się od nowa.')) return
+    if (applyPreset(inApp)) window.location.reload()
+  }
+  const newer = inApp && inApp.savedAt !== applied
+
+  return (
+    <div className="card" data-card="preset">
+      <h3 style={{ fontWeight: 800, marginBottom: 6 }}>Ustawienia domyślne</h3>
+      <p style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 10, lineHeight: 1.5 }}>
+        Ustaw aplikację na jednym urządzeniu i zapisz ustawienia do pliku w aplikacji. Każde nowe urządzenie zacznie od nich samo,
+        a na używanym wczytasz je tym przyciskiem. Przenoszą się: ćwiczenia z godzinami, lista słów, wygląd, imię, wiek i cel.
+        Nie przenoszą się: wyniki, punkty, „zdiagnozowany problem” i kalibracje.
+      </p>
+      <div className="row-list-item">
+        <span className="rli-label">W aplikacji</span>
+        <span className="rli-val" data-preset="inapp">{inApp === undefined ? 'sprawdzam…' : inApp ? fmtDate(inApp.savedAt) : 'brak pliku'}</span>
+      </div>
+      <div className="row-list-item" style={{ borderBottom: 'none', marginBottom: 10 }}>
+        <span className="rli-label">Na tym urządzeniu</span>
+        <span className="rli-val" data-preset="applied">{applied ? (newer ? `starsze (${fmtDate(applied)})` : 'aktualne') : 'nie wczytywano'}</span>
+      </div>
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+        <button className="btn btn-primary" style={{ flex: 1 }} onClick={save} data-act="preset-save">Zapisz jako ustawienia domyślne</button>
+        <button className="btn btn-ghost" style={{ flex: 1 }} disabled={!inApp} onClick={load} data-act="preset-load">Wczytaj ustawienia domyślne</button>
+      </div>
+      {msg === 'saved' && (
+        <div style={{ fontSize: 13, marginTop: 10, lineHeight: 1.6 }} data-preset-msg="saved">
+          <b style={{ color: 'var(--green)' }}>Zapisano w folderze aplikacji</b> (public/preset.json). Żeby trafiło na inne urządzenia, wyślij na GitHub:
+          <pre style={{ fontSize: 12, background: 'var(--soft)', padding: 10, borderRadius: 10, marginTop: 6, overflowX: 'auto' }}>{'cd ~/Desktop/Karolek-mowa\ngit add -A\ngit commit -m "Ustawienia domyslne"\ngit push'}</pre>
+        </div>
+      )}
+      {msg === 'downloaded' && (
+        <div style={{ fontSize: 13, marginTop: 10, lineHeight: 1.6 }} data-preset-msg="downloaded">
+          <b>Plik preset.json został pobrany.</b> Żeby stał się ustawieniami domyślnymi, musi trafić do folderu <b>public</b> w aplikacji
+          na komputerze i pójść na GitHub. Najprościej zapisywać ustawienia na komputerze, na którym działa „npm run dev”: tam zapis jest automatyczny.
+        </div>
+      )}
+    </div>
+  )
+}
 
 export default function ProfileScreen({ user, setUser, setPlan, setExercises }) {
   const [form, setForm]   = useState(user)
@@ -83,6 +141,8 @@ export default function ProfileScreen({ user, setUser, setPlan, setExercises }) 
           {saved ? '✓ Zapisano!' : 'Zapisz profil'}
         </button>
       </div>
+
+      <PresetCard />
 
       {/* Stats summary */}
       <div className="card">
