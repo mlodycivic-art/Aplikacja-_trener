@@ -153,6 +153,17 @@ function TimeInput({ value, onChange }) {
 // ── Pole czasu dla slotów harmonogramu — niezależne pola HH i MM ──────────────
 // Kliknięcie w pole → całość zaznaczona (łatwa zmiana wartości).
 // Tab z godziny → przeskakuje do minut. Wyjście z pola → formatuje do 2 cyfr.
+// Porządkuje harmonogram przed zapisem: bez powtórzeń tej samej godziny w jednym dniu,
+// ułożony po dniu i godzinie. Dwie identyczne godziny dałyby dwa ćwiczenia o tym samym identyfikatorze w planie.
+function cleanSchedule(schedule) {
+  const seen = new Set()
+  return (schedule || [])
+    .filter(Boolean)
+    .map(s => (/^\d{2}:\d{2}$/.test(s.hour || '') ? s : { ...s, hour: '08:00' }))   // pusta godzina = 08:00, tak jak pokazuje pole
+    .filter(s => { const k = `${s.day}|${s.hour}`; if (seen.has(k)) return false; seen.add(k); return true })
+    .sort((a, b) => a.day - b.day || a.hour.localeCompare(b.hour))
+}
+
 function SlotTimeInput({ value, onChange }) {
   const [h, m] = (value || '08:00').split(':')
   const [localH, setLocalH] = useState(h || '08')
@@ -342,7 +353,7 @@ export default function TrainerScreen({ exercises, setExercises, plan, setPlan }
 
     const updatedExercise = {
       ...editEx,
-      schedule:        form.schedule,
+      schedule:        cleanSchedule(form.schedule),
       duration:        durationToSave,
       params:          updatedParams,
       alarmEnabled:    form.alarmEnabled,
@@ -372,14 +383,25 @@ export default function TrainerScreen({ exercises, setExercises, plan, setPlan }
   const testSound = () => playSound(form.alarmSound || 'phone')
 
   // ── Zarządzanie slotami harmonogramu ──────────────────────────────────────
-  // Proste ćwiczenia: max 1 slot na dzień
-  const setSimpleSlot = (day, hour) => setForm(prev => {
-    const filtered = (prev.schedule || []).filter(s => s.day !== day)
-    return { ...prev, schedule: [...filtered, { day, hour }] }
+  // Proste ćwiczenia: dowolna liczba godzin w każdym dniu.
+  // Nowa godzina dostaje od razu konkretną wartość: 2 godziny po ostatniej tego dnia (pierwsza: 08:00).
+  const addSimpleSlot = (day) => setForm(prev => {
+    const hours = (prev.schedule || []).filter(s => s.day === day && s.hour).map(s => s.hour).sort()
+    let hour = '08:00'
+    if (hours.length) {
+      const [h, m] = hours[hours.length - 1].split(':').map(Number)
+      hour = `${String(Math.min(23, h + 2)).padStart(2, '0')}:${String(m || 0).padStart(2, '0')}`
+      if (hours.includes(hour)) hour = `${String(h).padStart(2, '0')}:${String(Math.min(59, (m || 0) + 30)).padStart(2, '0')}`
+    }
+    return { ...prev, schedule: [...(prev.schedule || []), { day, hour }] }
   })
-  const removeSimpleSlot = (day) => setForm(prev => ({
-    ...prev, schedule: (prev.schedule || []).filter(s => s.day !== day)
-  }))
+  // Te same godziny we wszystkie dni tygodnia (zastępuje godziny w pozostałych dniach)
+  const copyDayToAll = (day) => setForm(prev => {
+    const src = (prev.schedule || []).filter(s => s.day === day)
+    const all = []
+    for (let d = 0; d < 7; d++) src.forEach(s => all.push({ ...s, day: d }))
+    return { ...prev, schedule: all }
+  })
 
   // SZ Lip i Speech Rhythm: wiele slotów na dzień, każdy z własną konfiguracją
   // Użycie globalnego indeksu w tablicy form.schedule dla bezpiecznej edycji
@@ -447,7 +469,7 @@ export default function TrainerScreen({ exercises, setExercises, plan, setPlan }
             <div style={{ flex: 1 }}>
               <div style={{ fontWeight: 800, fontSize: 15 }}>{MODULE_LABELS[ex.module] || ex.name}</div>
               <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 3 }}>
-                ~{ex.duration} min · {(ex.schedule || []).length === 0 ? 'Brak harmonogramu — skonfiguruj w Trenerze' : `${(ex.schedule || []).length} slotów`}
+                ~{ex.duration} min · {(ex.schedule || []).length === 0 ? 'Brak harmonogramu — skonfiguruj w Trenerze' : `${(ex.schedule || []).length} ${(ex.schedule || []).length === 1 ? 'termin' : 'terminów'} w tygodniu`}
               </div>
               <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 4 }}>
                 {DAYS_PL.map((d, i) => {
@@ -499,23 +521,32 @@ export default function TrainerScreen({ exercises, setExercises, plan, setPlan }
 
             <label className="form-label">Harmonogram tygodniowy</label>
 
-            {/* Proste ćwiczenia — max 1 godzina na dzień */}
+            {/* Proste ćwiczenia — dowolna liczba godzin w każdym dniu */}
             {isSimpleSlot && DAYS_PL.map((dayLabel, dayIdx) => {
-              const slot = (form.schedule || []).find(s => s.day === dayIdx)
+              const daySlots = (form.schedule || [])
+                .map((s, i) => ({ ...s, _globalIdx: i }))
+                .filter(s => s.day === dayIdx)
               return (
-                <div key={dayIdx} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-                  <span style={{ width: 32, fontWeight: 800, fontSize: 12, color: 'var(--muted)', flexShrink: 0 }}>{dayLabel}</span>
-                  {slot ? (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                      <SlotTimeInput value={slot.hour} onChange={h => setSimpleSlot(dayIdx, h)} />
-                      <button onClick={() => removeSimpleSlot(dayIdx)}
-                        style={{ background: 'none', border: 'none', color: 'var(--muted)', cursor: 'pointer', fontSize: 20, padding: '0 4px', lineHeight: 1 }}>
-                        ×
-                      </button>
-                    </div>
-                  ) : (
-                    <button className="btn btn-ghost btn-sm" onClick={() => setSimpleSlot(dayIdx, '')}>+ Dodaj</button>
-                  )}
+                <div key={dayIdx} data-day={dayIdx} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 10 }}>
+                  <span style={{ width: 32, fontWeight: 800, fontSize: 12, color: 'var(--muted)', flexShrink: 0, paddingTop: 12 }}>{dayLabel}</span>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 10, flex: 1 }}>
+                    {daySlots.map(slot => (
+                      <div key={slot._globalIdx} style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                        <SlotTimeInput value={slot.hour} onChange={h => updateSlotByIdx(slot._globalIdx, 'hour', h)} />
+                        <button onClick={() => removeSlotByIdx(slot._globalIdx)} aria-label="Usuń godzinę"
+                          style={{ background: 'none', border: 'none', color: 'var(--muted)', cursor: 'pointer', fontSize: 20, padding: '0 4px', lineHeight: 1 }}>
+                          ×
+                        </button>
+                      </div>
+                    ))}
+                    <button className="btn btn-ghost btn-sm" data-act="add-slot" onClick={() => addSimpleSlot(dayIdx)}>
+                      {daySlots.length ? '+ Kolejna godzina' : '+ Dodaj'}
+                    </button>
+                    {daySlots.length > 0 && (
+                      <button className="btn btn-ghost btn-sm" data-act="copy-day" title="Ustaw te same godziny we wszystkie dni tygodnia"
+                        onClick={() => copyDayToAll(dayIdx)}>Na cały tydzień</button>
+                    )}
+                  </div>
                 </div>
               )
             })}
