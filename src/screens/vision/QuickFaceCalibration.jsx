@@ -8,6 +8,8 @@ import { useEffect, useRef, useState } from 'react'
 import { useFaceEngine } from './useFaceEngine'
 import { checkPucker } from './detectors'
 import { getFaceProfile, saveFaceProfile, clearFaceProfile, medianSample, puckerScore, MIN_RANGE } from '../../data/faceProfile'
+import SetupCheck from './SetupCheck'
+import { measureFace, monitorSetup, createSetupWatch, PACES, getCalibPace } from '../../data/setupCheck'
 
 const NEED_SAMPLES = 45       // ok. 2 s przy 20–30 klatkach na sekundę
 const STEPS = {
@@ -17,12 +19,17 @@ const STEPS = {
 
 export default function QuickFaceCalibration() {
   const face = useFaceEngine()
-  const [stage, setStage]     = useState('idle')   // idle | loading | neutral | pucker | done | weak | error
+  const [stage, setStage]     = useState('idle')   // idle | loading | setup | neutral | pucker | done | weak | error
+  const [phase, setPhase]     = useState('prep')   // prep (odliczanie) | take (zapis)
+  const [left, setLeft]       = useState(0)
+  const [hint, setHint]       = useState('')       // co poprawić, gdy stanowisko się rozjechało
+  const phaseRef = useRef(phase); phaseRef.current = phase
+  const watch = useRef(createSetupWatch()).current
   const [progress, setProgress] = useState(0)
   const [seen, setSeen]       = useState(false)
   const [live, setLive]       = useState(null)
   const [profile, setProfile] = useState(getFaceProfile())
-  const data = useRef({ samples: [], neutral: null })
+  const data = useRef({ samples: [], neutral: null, phaseAt: 0, setup: null })
   const stageRef = useRef(stage)
   stageRef.current = stage
 
@@ -35,19 +42,34 @@ export default function QuickFaceCalibration() {
       const points = face.getPoints()
       const visible = !!points && face.msSinceFace() < 800
       setSeen(visible)
-      if (!visible) return
-      const m = checkPucker(points, face.getCanvasSize())
+      const d = data.current
+      const now = performance.now()
+      // przerwanie kroku: klatki przepadają, odliczanie zacznie się od nowa po powrocie na miejsce
+      const interrupt = (text) => { setHint(text); d.samples = []; d.phaseAt = now; if (phaseRef.current !== 'prep') setPhase('prep'); setProgress(0) }
+      if (!visible) { watch.reset(); if (st !== 'done') interrupt('Nie widzę twarzy. Usiądź na wprost kamery, w dobrym świetle.'); return }
+      const size = face.getCanvasSize()
+      if (st !== 'done') {
+        const blocked = watch.update(monitorSetup(measureFace(points, size), d.setup), now)
+        if (blocked) { interrupt(blocked.hint); return }
+      }
+      setHint('')
+      const m = checkPucker(points, size)
       if (m.widthRatio == null) return
       setLive({ widthRatio: m.widthRatio, aspect: m.aspect })
       if (st === 'done') return
-      const d = data.current
+      if (phaseRef.current === 'prep') {
+        const remain = PACES[getCalibPace()].prep - (now - d.phaseAt)
+        setLeft(Math.max(1, Math.ceil(remain / 1000)))
+        if (remain <= 0) { d.samples = []; setPhase('take'); setProgress(0) }
+        return
+      }
       d.samples.push({ widthRatio: m.widthRatio, aspect: m.aspect })
       setProgress(Math.min(1, d.samples.length / NEED_SAMPLES))
       if (d.samples.length >= NEED_SAMPLES) {
         const med = medianSample(d.samples)
         d.samples = []
         setProgress(0)
-        if (st === 'neutral') { d.neutral = med; setStage('pucker') }
+        if (st === 'neutral') { d.neutral = med; d.phaseAt = now; setPhase('prep'); setStage('pucker') }
         else {
           const saved = saveFaceProfile(d.neutral, med)
           if (saved) { setProfile(saved); setStage('done') } else setStage('weak')
@@ -58,11 +80,18 @@ export default function QuickFaceCalibration() {
   }, [face])
 
   const start = async () => {
-    data.current = { samples: [], neutral: null }
+    data.current = { samples: [], neutral: null, phaseAt: 0, setup: null }
+    watch.reset(); setHint(''); setPhase('prep')
     setProgress(0)
     setStage('loading')
     const ok = await face.start()
-    setStage(ok ? 'neutral' : 'error')
+    setStage(ok ? 'setup' : 'error')   // najpierw kontrola stanowiska, potem dwa kroki
+  }
+  const afterSetup = (conditions) => {
+    data.current.setup = conditions
+    data.current.phaseAt = performance.now()
+    setPhase('prep')
+    setStage('neutral')
   }
   const stop = () => { face.stop(); setStage('idle') }
 
@@ -72,7 +101,7 @@ export default function QuickFaceCalibration() {
     <div className="card">
       <div style={{ fontWeight: 800, fontSize: 17 }}>Osobista kalibracja ust</div>
       <p className="text-muted" style={{ fontSize: 13, margin: '4px 0 12px', lineHeight: 1.5 }}>
-        Dwa kroki po 2 sekundy. System zapamiętuje usta tej osoby w spoczynku i w dzióbku, a gry mierzą dzióbek
+        Najpierw kontrola stanowiska, potem dwa kroki: odliczanie na przygotowanie i 2 sekundy zapisu. System zapamiętuje usta tej osoby w spoczynku i w dzióbku, a gry mierzą dzióbek
         względem jej własnego zakresu. Warto powtórzyć po zmianie urządzenia lub miejsca kamery.
       </p>
 
@@ -91,15 +120,23 @@ export default function QuickFaceCalibration() {
       </>)}
 
       {stage === 'loading' && <div style={{ fontWeight: 800 }}>Uruchamiam kamerę…</div>}
+      {stage === 'setup' && <SetupCheck face={face} onReady={afterSetup} title="Najpierw ustawcie stanowisko" />}
 
       {(stage === 'neutral' || stage === 'pucker') && (<>
         <div style={{ fontWeight: 800, fontSize: 18 }}>{STEPS[stage].title}</div>
         <div className="text-muted" style={{ fontSize: 14, margin: '4px 0 12px' }}>{STEPS[stage].hint}</div>
         <div className="progress-wrap dark" style={{ height: 14 }}>
-          <div className="progress-fill colored" style={{ width: `${progress * 100}%`, transition: 'width .1s linear' }} />
+          <div className="progress-fill colored" style={{ width: `${phase === 'take' ? progress * 100 : 0}%`, transition: 'width .1s linear' }} />
         </div>
-        <div style={{ fontSize: 13, fontWeight: 700, marginTop: 8, color: seen ? 'var(--green)' : 'var(--red)' }}>
-          {seen ? 'Widzę twarz' : 'Nie widzę twarzy — usiądź na wprost kamery, w dobrym świetle'}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, minHeight: 56, marginTop: 8 }}>
+          {!hint && phase === 'prep' && (
+            <div style={{ width: 52, height: 52, borderRadius: 26, background: 'var(--soft)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 26, fontWeight: 800, color: 'var(--primary)', flexShrink: 0 }}>{left}</div>
+          )}
+          <div style={{ fontSize: 15, fontWeight: 800, lineHeight: 1.35, color: hint ? 'var(--orange)' : phase === 'prep' ? 'var(--muted)' : 'var(--green)' }}>
+            {hint || (phase === 'prep' ? 'Przygotuj się. Zaraz zapisuję.' : 'Trzymaj, zapisuję…')}
+            {hint && <div className="text-muted" style={{ fontSize: 12, fontWeight: 700, marginTop: 2 }}>Krok czeka. Zacznie się od nowa, gdy wrócisz na miejsce.</div>}
+          </div>
         </div>
         <button className="btn btn-ghost btn-full mt-12" onClick={stop}>Przerwij</button>
       </>)}

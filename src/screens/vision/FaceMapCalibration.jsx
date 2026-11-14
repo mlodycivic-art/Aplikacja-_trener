@@ -1,6 +1,8 @@
 // Kalibracja "Mapa ust" — około minuty + 30 sekund testu trafności.
 //
-// Krok po kroku ekran prosi o pozycję (głoską albo ruchem języka), zbiera ~2 s klatek i idzie dalej.
+// Krok po kroku ekran prosi o pozycję (głoską albo ruchem języka): najpierw odliczanie na przygotowanie
+// (tempo wybiera dorosły), potem ~2 s zapisu, potem chwila przerwy. Przez cały czas pilnuje stanowiska:
+// gdy osoba się odsunie, zjedzie z kadru albo przechyli głowę, krok czeka i zaczyna się od nowa.
 // Na końcu TEST: losowo prosi o pozycje i sprawdza, czy mapa je rozpoznaje. Wynik to liczba
 // (trafność %) i lista pomyłek — po niej widać, czy powtórzyć kalibrację i czy gry mogą używać kamery.
 //
@@ -14,10 +16,11 @@ import {
 } from '../../data/faceMap'
 import { isSimMode } from './useMouthControl'
 import SetupCheck from './SetupCheck'
+import { measureFace, monitorSetup, createSetupWatch, PACES, getCalibPace, setCalibPace } from '../../data/setupCheck'
 
 const NEED = 40            // klatek na pozycję (~2 s)
-const PREP_MS = 1800       // czas na przyjęcie pozycji przed zbieraniem
-const TEST_PREP_MS = 1500
+const SAVED_MS = 900       // po zapisaniu pozycji: chwila z potwierdzeniem, zanim pojawi się następna
+// Czas na przyjęcie pozycji przed zbieraniem zależy od tempa wybranego przez dorosłego (PACES w setupCheck.js)
 const TEST_NEED = 14
 const TEST_REPEATS = 2
 const poseById = Object.fromEntries(POSES.map(p => [p.id, p]))
@@ -28,9 +31,14 @@ export default function FaceMapCalibration() {
   const sim = useRef(isSimMode()).current
   const [stage, setStage] = useState('idle')      // idle | loading | setup | collect | test | done | error
   const [idx, setIdx] = useState(0)
-  const [phase, setPhase] = useState('prep')      // prep | take
+  const [phase, setPhase] = useState('prep')      // prep | take | saved
   const [progress, setProgress] = useState(0)
-  const [status, setStatus] = useState('ok')      // ok | noface | turned
+  const [status, setStatus] = useState('ok')      // ok | noface | turned | setup
+  const [hint, setHint] = useState('')            // co poprawić, gdy stanowisko się rozjechało
+  const [left, setLeft] = useState(0)             // odliczanie przed zapisem (sekundy)
+  const [pace, setPace] = useState(getCalibPace())
+  const paceRef = useRef(pace); paceRef.current = pace
+  const watch = useRef(createSetupWatch()).current
   const [map, setMap] = useState(getFaceMap())
   const [result, setResult] = useState(null)
   const canvasRef = useRef(null)
@@ -56,21 +64,41 @@ export default function FaceMapCalibration() {
         g.save(); g.scale(-1, 1); g.drawImage(video, -cv.width, 0, cv.width, cv.height); g.restore()
       }
 
+      const now = performance.now()
+      // Cokolwiek jest nie tak (brak twarzy, obrót, zmiana odległości lub miejsca): krok się zatrzymuje,
+      // dotychczasowe klatki przepadają, a po powrocie odliczanie zaczyna się od nowa.
+      const interrupt = (kind, text = '') => {
+        setStatus(kind); setHint(text)
+        if (phaseRef.current !== 'saved') { s.buf = []; s.phaseAt = now; if (phaseRef.current !== 'prep') setPhase('prep'); setProgress(0) }
+      }
+
       let f = null
       if (sim) f = simFeatures(poseId, 0.012)
       else {
         const points = face.getPoints()
-        if (!points || face.msSinceFace() > 800) { setStatus('noface'); return }
-        const ex = extractFeatures(points, face.getCanvasSize(), face.getBlendshapes())
-        if (!ex) { setStatus('noface'); return }
-        if (Math.abs(ex.yaw) > MAX_YAW) { setStatus('turned'); return }
+        if (!points || face.msSinceFace() > 800) { watch.reset(); interrupt('noface'); return }
+        const size = face.getCanvasSize()
+        const blocked = watch.update(monitorSetup(measureFace(points, size), s.setup || null), now)
+        if (blocked) { interrupt('setup', blocked.hint); return }
+        const ex = extractFeatures(points, size, face.getBlendshapes())
+        if (!ex) { interrupt('noface'); return }
+        if (Math.abs(ex.yaw) > MAX_YAW) { interrupt('turned'); return }
         f = ex.f
       }
       setStatus('ok')
 
-      const now = performance.now()
+      if (phaseRef.current === 'saved') {
+        if (now - s.phaseAt >= SAVED_MS) {
+          if (s.pendingIdx != null) { setIdx(s.pendingIdx); idxRef.current = s.pendingIdx; s.pendingIdx = null }
+          s.phaseAt = now; setPhase('prep'); setProgress(0)
+        }
+        return
+      }
       if (phaseRef.current === 'prep') {
-        if (now - s.phaseAt >= (stg === 'collect' ? PREP_MS : TEST_PREP_MS)) { s.buf = []; setPhase('take'); setProgress(0) }
+        const prepMs = stg === 'collect' ? PACES[paceRef.current].prep : PACES[paceRef.current].testPrep
+        const remain = prepMs - (now - s.phaseAt)
+        setLeft(Math.max(1, Math.ceil(remain / 1000)))
+        if (remain <= 0) { s.buf = []; setPhase('take'); setProgress(0) }
         return
       }
       s.buf.push(f)
@@ -81,7 +109,7 @@ export default function FaceMapCalibration() {
       if (stg === 'collect') {
         s.samples[poseId] = s.buf
         s.buf = []
-        if (idxRef.current + 1 < POSES.length) { setIdx(idxRef.current + 1); s.phaseAt = now; setPhase('prep'); setProgress(0) }
+        if (idxRef.current + 1 < POSES.length) { s.pendingIdx = idxRef.current + 1; s.phaseAt = now; setPhase('saved') }
         else {
           const m = buildMap(s.samples)
           if (!m) { setStage('error'); return }
@@ -100,7 +128,7 @@ export default function FaceMapCalibration() {
         const got = Object.entries(votes).sort((a, b) => b[1] - a[1])[0][0]
         s.trials.push({ expected: poseId, got: got === 'brak' ? null : got })
         s.buf = []
-        if (idxRef.current + 1 < s.order.length) { setIdx(idxRef.current + 1); s.phaseAt = now; setPhase('prep'); setProgress(0) }
+        if (idxRef.current + 1 < s.order.length) { s.pendingIdx = idxRef.current + 1; s.phaseAt = now; setPhase('saved') }
         else {
           const sc = scoreTrials(s.trials)
           // setup = warunki, w których powstała mapa (odległość, kąt, światło) — gry porównują z nimi
@@ -116,7 +144,8 @@ export default function FaceMapCalibration() {
   }, [face, sim])
 
   const start = async () => {
-    st.current = { samples: {}, buf: [], phaseAt: 0, order: [], trials: [], map: null }
+    st.current = { samples: {}, buf: [], phaseAt: 0, order: [], trials: [], map: null, pendingIdx: null }
+    watch.reset(); setHint('')
     setIdx(0); setPhase('prep'); setProgress(0); setResult(null)
     if (!sim) {
       setStage('loading')
@@ -158,7 +187,8 @@ export default function FaceMapCalibration() {
     <div className="card">
       <div style={{ fontWeight: 800, fontSize: 17 }}>Mapa ust</div>
       <p className="text-muted" style={{ fontSize: 13, margin: '4px 0 12px', lineHeight: 1.5 }}>
-        Dziewięć pozycji po 2 sekundy, potem krótki test, który sprawdza, czy system rozpoznaje je u tej osoby.
+        Dziewięć pozycji: odliczanie na przygotowanie, 2 sekundy zapisu i chwila przerwy. Potem test, który sprawdza,
+        czy system rozpoznaje je u tej osoby. Jeśli w trakcie ktoś się odsunie albo zjedzie z kadru, krok czeka.
         Od wyniku testu zależy, czy gry Auto i Sejf mogą być sterowane kamerą.
       </p>
 
@@ -168,6 +198,14 @@ export default function FaceMapCalibration() {
           <Summary m={map} />
         </>)}
         {stage === 'error' && <div style={{ color: 'var(--red)', fontWeight: 700, fontSize: 13, margin: '8px 0' }}>{face.getError() || 'Nie udało się zbudować mapy — spróbuj ponownie.'}</div>}
+        <label className="form-label" style={{ marginTop: 12 }}>Tempo kalibracji</label>
+        <div className="type-selector" style={{ marginBottom: 4 }}>
+          {Object.entries(PACES).map(([id, p]) => (
+            <button key={id} className={`type-btn ${pace === id ? 'active' : ''}`} data-pace={id}
+              onClick={() => { setPace(id); setCalibPace(id) }}>{p.label} · {p.prep / 1000} s</button>
+          ))}
+        </div>
+        <div className="text-muted" style={{ fontSize: 12 }}>Tyle czasu jest na przeczytanie polecenia i przyjęcie pozycji, zanim zacznie się zapis.</div>
         <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
           <button className="btn btn-primary" style={{ flex: 2 }} onClick={start}>{map ? 'Kalibruj ponownie' : 'Zacznij kalibrację'}</button>
           {map && <button className="btn btn-ghost" style={{ flex: 1 }} onClick={() => { clearFaceMap(); setMap(null) }}>Usuń mapę</button>}
@@ -188,12 +226,22 @@ export default function FaceMapCalibration() {
         </div>
         <div className="text-muted" style={{ fontSize: 14, margin: '8px 0 12px' }}>{pose.hint}</div>
         <div className="progress-wrap dark" style={{ height: 14 }}>
-          <div className="progress-fill colored" style={{ width: `${phase === 'take' ? progress * 100 : 0}%`, transition: 'width .08s linear' }} />
+          <div className="progress-fill colored" style={{ width: `${phase === 'take' ? progress * 100 : phase === 'saved' ? 100 : 0}%`, transition: 'width .08s linear' }} />
         </div>
-        <div style={{ fontSize: 13, fontWeight: 700, marginTop: 8, color: status === 'ok' ? (phase === 'take' ? 'var(--green)' : 'var(--muted)') : 'var(--red)' }}>
-          {status === 'noface' ? 'Nie widzę twarzy — usiądź na wprost kamery'
-            : status === 'turned' ? 'Głowa jest obrócona — patrz prosto w ekran'
-            : phase === 'prep' ? 'Przygotuj się…' : 'Trzymaj — zapisuję'}
+        <div data-calib-status={status === 'ok' ? phase : status} style={{ display: 'flex', alignItems: 'center', gap: 12, minHeight: 56, marginTop: 8 }}>
+          {status === 'ok' && phase === 'prep' && (
+            <div style={{ width: 52, height: 52, borderRadius: 26, background: 'var(--soft)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 26, fontWeight: 800, color: 'var(--primary)', flexShrink: 0 }} data-countdown>{left}</div>
+          )}
+          <div style={{ fontSize: status === 'ok' ? 15 : 16, fontWeight: 800, lineHeight: 1.35,
+            color: status !== 'ok' ? 'var(--orange)' : phase === 'prep' ? 'var(--muted)' : 'var(--green)' }}>
+            {status === 'noface' ? 'Nie widzę twarzy. Usiądź na wprost kamery.'
+              : status === 'turned' ? 'Głowa jest obrócona. Patrz prosto w ekran.'
+              : status === 'setup' ? hint
+              : phase === 'prep' ? 'Przygotuj się. Zaraz zapisuję.'
+              : phase === 'saved' ? 'Zapisane. Odpocznij chwilę.' : 'Trzymaj, zapisuję…'}
+            {status !== 'ok' && <div className="text-muted" style={{ fontSize: 12, fontWeight: 700, marginTop: 2 }}>Krok czeka. Zacznie się od nowa, gdy wrócisz na miejsce.</div>}
+          </div>
         </div>
         <button className="btn btn-ghost btn-full mt-12" onClick={stop}>Przerwij</button>
       </>)}

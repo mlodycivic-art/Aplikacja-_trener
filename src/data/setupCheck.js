@@ -61,6 +61,7 @@ export function measureFace(points, size) {
 
   return {
     distanceCm, cx, cy, roll, yaw, pitch, gazeV, eyePx: eye,
+    eyeY: (eR[1] + eL[1]) / 2 / size.height,                  // wysokość oczu w kadrze: nie zmienia się przy otwieraniu ust
     nx: nose[0] / eye, ny: nose[1] / eye,                     // do pomiaru drgań (w jednostkach rozstawu oczu)
     box: { x0: Math.min(sR[0], sL[0]) / size.width, x1: Math.max(sR[0], sL[0]) / size.width, y0: top[1] / size.height, y1: chin[1] / size.height },
   }
@@ -166,5 +167,70 @@ export function summarizeConditions(samples, lightSamples) {
   const avg = (k) => samples.reduce((s, m) => s + (m[k] || 0), 0) / samples.length
   const face = lightSamples.length ? lightSamples.reduce((s, l) => s + l.face, 0) / lightSamples.length : null
   return { distanceCm: +avg('distanceCm').toFixed(1), pitch: +avg('pitch').toFixed(1), roll: +avg('roll').toFixed(1),
-           gazeV: +avg('gazeV').toFixed(3), light: face != null ? Math.round(face) : null }
+           gazeV: +avg('gazeV').toFixed(3), light: face != null ? Math.round(face) : null,
+           cx: +avg('cx').toFixed(3), eyeY: +avg('eyeY').toFixed(3) }
 }
+
+// ── Pilnowanie stanowiska W TRAKCIE kalibracji ───────────────────────────────
+// Kontrola na początku nie wystarcza: w trakcie kolejnych kroków osoba odsuwa się, przechyla albo zjeżdża z kadru.
+// Sprawdzamy tylko to, czego nie zmienia sama mina: odległość (z tęczówki), położenie oczu w kadrze, przechylenie
+// i obrót głowy. Pochylenia i światła tu nie oceniamy — przy szeroko otwartych ustach broda opada i pomiar by kłamał.
+// m: measureFace(); ref: warunki zapisane w kroku kontroli stanowiska (albo null).
+// Zwraca null, gdy jest dobrze, albo { id, hint } z jednym poleceniem, co poprawić.
+export const MONITOR = { dist: 0.18, shift: 0.12, roll: 12, yaw: 0.20, distMin: 28, distMax: 70, center: 0.25 }
+export function monitorSetup(m, ref = null) {
+  if (!m) return { id: 'face', hint: 'Nie widzę twarzy. Usiądź na wprost kamery.' }
+  const k = MONITOR
+  if (ref && ref.distanceCm) {
+    const ratio = m.distanceCm / ref.distanceCm
+    if (ratio > 1 + k.dist) return { id: 'distance', hint: 'Odsunąłeś się. Przysuń się z powrotem do telefonu.' }
+    if (ratio < 1 - k.dist) return { id: 'distance', hint: 'Jesteś za blisko. Odsuń się na poprzednie miejsce.' }
+  } else {
+    if (m.distanceCm > k.distMax) return { id: 'distance', hint: 'Za daleko. Przysuń się do telefonu.' }
+    if (m.distanceCm < k.distMin) return { id: 'distance', hint: 'Za blisko. Odsuń się od telefonu.' }
+  }
+  const dx = m.cx - (ref && typeof ref.cx === 'number' ? ref.cx : 0.5)
+  const lim = ref && typeof ref.cx === 'number' ? k.shift : k.center
+  if (Math.abs(dx) > lim) return { id: 'position', hint: 'Zjechałeś w bok. Usiądź z powrotem na środku.' }
+  if (ref && typeof ref.eyeY === 'number') {
+    const dy = m.eyeY - ref.eyeY
+    if (dy > k.shift) return { id: 'position', hint: 'Siedzisz niżej niż przed chwilą. Wyprostuj się.' }
+    if (dy < -k.shift) return { id: 'position', hint: 'Jesteś wyżej niż przed chwilą. Usiądź jak na początku.' }
+  }
+  if (Math.abs(m.roll) > k.roll) return { id: 'head', hint: 'Głowa jest przechylona na bok. Trzymaj ją prosto.' }
+  if (Math.abs(m.yaw) > k.yaw) return { id: 'head', hint: 'Patrz na wprost, nie w bok.' }
+  return null
+}
+
+// Naruszenie musi trwać chwilę, zanim przerwie krok, a po powrocie chwilę musi być dobrze —
+// inaczej pojedyncza zła klatka albo mrugnięcie przerywałyby kalibrację.
+const BAD_AFTER_MS = 500, GOOD_AFTER_MS = 600
+export function createSetupWatch() {
+  let badSince = 0, goodSince = 0, blocked = null
+  return {
+    // problem: wynik monitorSetup() dla bieżącej klatki; zwraca aktualną blokadę ({ id, hint }) albo null
+    update(problem, now) {
+      if (problem) {
+        goodSince = 0
+        if (!badSince) badSince = now
+        if (blocked || now - badSince >= BAD_AFTER_MS) blocked = problem
+      } else {
+        badSince = 0
+        if (blocked) { if (!goodSince) goodSince = now; if (now - goodSince >= GOOD_AFTER_MS) { blocked = null; goodSince = 0 } }
+      }
+      return blocked
+    },
+    reset() { badSince = 0; goodSince = 0; blocked = null },
+  }
+}
+
+// ── Tempo kalibracji ─────────────────────────────────────────────────────────
+// prep: czas na przeczytanie polecenia i przyjęcie pozycji (z odliczaniem na ekranie), zanim zacznie się zapis.
+const KEY_PACE = 'stc_calib_pace'
+export const PACES = {
+  slow:   { label: 'Spokojne', prep: 6000, testPrep: 4500 },
+  normal: { label: 'Zwykłe',   prep: 4000, testPrep: 3000 },
+  fast:   { label: 'Szybkie',  prep: 2000, testPrep: 1500 },
+}
+export function getCalibPace() { try { const p = localStorage.getItem(KEY_PACE); return PACES[p] ? p : 'normal' } catch (e) { return 'normal' } }
+export function setCalibPace(p) { try { localStorage.setItem(KEY_PACE, p) } catch (e) {} }
