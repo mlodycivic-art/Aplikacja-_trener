@@ -436,6 +436,35 @@ const CAREFUL_EXERCISE = {
 // Ćwiczenia są trwale zapisane w przeglądarce (stc_exercises), więc nowe zestawy z kodu
 // same się tam nie pojawią. Ta funkcja dopisuje brakujące zestawy i treść TYLKO tam,
 // gdzie pole jest puste — niczego, co wpisał trener, nie nadpisuje.
+// Zestawy do „SZ Lip Shape” (usta w dzióbek), od najłatwiejszych do najtrudniejszych:
+// sylaby → słowa (początek, środek, koniec) → cz → ż/rz → dż → zbitki spółgłosek.
+// W zestawach 1–9 nie ma „s”, „c”, „z”, żeby nie mieszać ułożenia ust. Propozycja do zatwierdzenia przez logopedę.
+export const SZ_LIP_WORD_SETS = [
+  'sza, sze, szo, szu',
+  'asz, osz, usz, esz, ysz, asza, oszo, uszu',
+  'szał, szum, szef, szyja, szopa, szafa, szuka, szeroki',
+  'kasza, uszy, daszek, groszek, kalosze, kosz, mysz, tusz',
+  'cza, cze, czo, czu, czy, acz, ocz, ucz',
+  'czapka, czoło, czubek, czeka, oczy, pączek, klucz, mecz',
+  'ża, że, żo, żu, ży, aża, ożo, uży',
+  'żaba, żuk, żyrafa, rzeka, róża, leży, morze, burza',
+  'dża, dże, dżo, dżu, dżem, dżungla, dżudo, dżokej',
+  'szkoła, szpak, sztuka, szklanka, szpital, szczotka, deszcz, płaszcz',
+]
+
+// Uzupełnia PUSTE zestawy w zapisanym ćwiczeniu SZ Lip Shape; zestawów wpisanych przez dorosłego nie rusza.
+function fillSzLipSets(ex) {
+  const cur = ex.params?.wordSets || []
+  let changed = false
+  const sets = SZ_LIP_WORD_SETS.map((words, i) => {
+    const have = cur[i]
+    if (have && String(have.words || '').trim()) return have
+    changed = true
+    return { ...(have || {}), id: i, words }
+  })
+  return changed ? { ...ex, params: { ...(ex.params || {}), wordSets: sets } } : ex
+}
+
 export function migrateExercises(exercises) {
   let changed = false
   let list = exercises || []
@@ -446,6 +475,11 @@ export function migrateExercises(exercises) {
   if (!list.some(ex => ex.module === 'safe_game')) { list = [...list, SAFE_EXERCISE]; changed = true }
   if (!list.some(ex => ex.module === 'careful_speech')) { list = [...list, CAREFUL_EXERCISE]; changed = true }
   const next = list.map(ex => {
+    if (ex.module === 'sz_lip') {
+      const filled = fillSzLipSets(ex)
+      if (filled !== ex) changed = true
+      return filled
+    }
     if (ex.module !== 'speech_rhythm') return ex
     const params = { ...(ex.params || {}) }
     let sets = params.soundSets || DEFAULT_SOUND_SETS
@@ -492,12 +526,7 @@ export const DEFAULT_EXERCISES = [
     alarmSound: 'phone',
     visionEnabled: false,
     params: {
-      wordSets: [
-        { id: 0, words: 'sza, sze, szo, szu' },
-        { id: 1, words: '' }, { id: 2, words: '' }, { id: 3, words: '' },
-        { id: 4, words: '' }, { id: 5, words: '' }, { id: 6, words: '' },
-        { id: 7, words: '' }, { id: 8, words: '' }, { id: 9, words: '' },
-      ],
+      wordSets: SZ_LIP_WORD_SETS.map((words, id) => ({ id, words })),
       speechRate: 0.3,
       gapSec: 0.4,
       reps: 5,
