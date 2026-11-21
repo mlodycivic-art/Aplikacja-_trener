@@ -1,9 +1,12 @@
 import { useState, useRef, useEffect } from 'react'
 import { playSound } from '../components/useAlarm'
 import { DEFAULT_SOUND_SETS, PROPOSED_SET_IDS, generateTodayPlan } from '../data/defaultData'
+import GymSettings from './gym/GymSettings'
+import { plural } from '../data/voice'
+import { buildRun, estimateSec } from '../data/gymExercises'
 
 const MODULE_LABELS = {
-  tongue_position: 'Tongue Up Position',
+  tongue_position: 'Gimnastyka buzi i języka',
   sz_lip:          'SZ Lip Shape',
   speech_rhythm:   'Speech Rhythm',
   mechanical:      'Mechanical Tongue Trainer',
@@ -469,7 +472,7 @@ export default function TrainerScreen({ exercises, setExercises, plan, setPlan }
             <div style={{ flex: 1 }}>
               <div style={{ fontWeight: 800, fontSize: 15 }}>{MODULE_LABELS[ex.module] || ex.name}</div>
               <div style={{ fontSize: 12, color: 'var(--muted)', marginTop: 3 }}>
-                ~{ex.duration} min · {(ex.schedule || []).length === 0 ? 'Brak harmonogramu — skonfiguruj w Trenerze' : `${(ex.schedule || []).length} ${(ex.schedule || []).length === 1 ? 'termin' : 'terminów'} w tygodniu`}
+                ~{ex.duration} min · {(ex.schedule || []).length === 0 ? 'Brak harmonogramu — skonfiguruj w Trenerze' : `${(ex.schedule || []).length} ${plural((ex.schedule || []).length, 'termin', 'terminy', 'terminów')} w tygodniu`}
               </div>
               <div style={{ fontSize: 11, color: 'var(--muted)', marginTop: 4 }}>
                 {DAYS_PL.map((d, i) => {
@@ -479,7 +482,7 @@ export default function TrainerScreen({ exercises, setExercises, plan, setPlan }
                 })}
               </div>
               <div style={{ marginTop: 6, fontSize: 11, color: 'var(--muted)' }}>
-                {ex.module === 'tongue_position' && `Aktywność: ${ex.params?.activeSec ?? 5}s · Przerwa: ${ex.params?.breakSec ?? 5}s`}
+                {ex.module === 'tongue_position' && `Seria: ${buildRun(ex.params?.gym).length} ćwiczeń w 3 etapach · ok. ${Math.max(1, Math.round(estimateSec(ex.params?.gym) / 60))} min`}
                 {ex.module === 'sz_lip' && (() => {
                   const words = (ex.params?.words || 'sza,sze,szo,szu').split(',').map(w => w.trim()).filter(Boolean)
                   return `Wyrazy: ${words.join(', ')} · Tempo: ${ex.params?.speechRate ?? 0.3} · Odstęp: ${ex.params?.gapSec ?? 0.4}s · ${ex.params?.reps ?? 5}× lista`
@@ -670,16 +673,9 @@ export default function TrainerScreen({ exercises, setExercises, plan, setPlan }
               </>
             )}
 
-            {editEx.module === 'tongue_position' && (<>
-              <label className="form-label">Czas aktywności (sekundy)</label>
-              <input className="form-input" type="number" min={1} max={60}
-                value={form.params?.activeSec ?? 5}
-                onChange={e => setParam('activeSec', Number(e.target.value))} />
-              <label className="form-label">Czas przerwy (sekundy)</label>
-              <input className="form-input" type="number" min={1} max={60}
-                value={form.params?.breakSec ?? 5}
-                onChange={e => setParam('breakSec', Number(e.target.value))} />
-            </>)}
+            {editEx.module === 'tongue_position' && (
+              <GymSettings value={form.params?.gym} onChange={g => setParam('gym', g)} />
+            )}
 
             {editEx.module === 'sz_lip' && (<>
               <label className="form-label">Tempo czytania</label>

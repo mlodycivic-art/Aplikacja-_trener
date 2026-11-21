@@ -81,6 +81,17 @@ strona musi być na ekranie (wygaszony ekran wstrzymuje pomiar); mikrofon z 2 m 
 
 Dalej: rozpoznanie głosu dziecka po wysokości (pomijanie dorosłych), formy odmienione słów, „odcisk fali” dla głosek zniekształconych.
 
+## Pakiet 12 (21.11.2026): Gimnastyka buzi i języka
+
+„Tongue Up Position” zastąpione serią (ten sam moduł `tongue_position`, harmonogram i alarmy zachowane):
+- **Etapy:** ćwiczenia warg (uśmiech z zębami, uśmiech zamknięty, dzióbek i uśmiech, całuski, nadymanie policzków,
+  wąsy z rurki), ćwiczenia języka (winda, liczenie zębów, koszyczek), podniebienie miękkie (ziewanie, chuchanie, śmiech).
+- **Animacja:** komiksowa twarz z przodu i przekrój z boku, rysowana kodem i sterowana pozą
+  (`src/screens/gym/FaceRig.jsx`); ćwiczenia to klatki kluczowe w `src/data/gymExercises.js`.
+- **Trener:** kolejność etapów, a w etapie: włącz/wyłącz, kolejność, powtórzenia (1–30), tempo (wolno/normalnie/szybko), podgląd.
+- **Wynik:** `gym_series` w magazynie wyników. Kamera jeszcze nie sprawdza wykonania.
+- Źródło ćwiczeń: zestaw szkolnego logopedy (SP Mogielnica). Powtórzenia i tempo do uzgodnienia z logopedką.
+
 ## Kolejka — w tej kolejności
 
 1. **Test SZ z Karolkiem** na docelowym urządzeniu → wyniki do rozmowy → decyzja, czy pomiar działa.

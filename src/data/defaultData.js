@@ -1,3 +1,4 @@
+import { DEFAULT_GYM } from './gymExercises'
 export const DEFAULT_USER = {
   id: 'user_1',
   name: 'Karolek',
@@ -436,6 +437,10 @@ const CAREFUL_EXERCISE = {
 // Ćwiczenia są trwale zapisane w przeglądarce (stc_exercises), więc nowe zestawy z kodu
 // same się tam nie pojawią. Ta funkcja dopisuje brakujące zestawy i treść TYLKO tam,
 // gdzie pole jest puste — niczego, co wpisał trener, nie nadpisuje.
+// „Tongue Up Position” zostaje zastąpione serią „Gimnastyka buzi i języka” (ten sam moduł i harmonogram)
+const GYM_NAME = 'Gimnastyka buzi i języka'
+const GYM_INSTRUCTION = 'Seria krótkich ćwiczeń w trzech etapach: wargi, język i podniebienie miękkie. Patrz na rysunek i rób to samo, w tempie animacji.'
+
 // Zestawy do „SZ Lip Shape” (usta w dzióbek), od najłatwiejszych do najtrudniejszych:
 // sylaby → słowa (początek, środek, koniec) → cz → ż/rz → dż → zbitki spółgłosek.
 // W zestawach 1–9 nie ma „s”, „c”, „z”, żeby nie mieszać ułożenia ust. Propozycja do zatwierdzenia przez logopedę.
@@ -475,6 +480,16 @@ export function migrateExercises(exercises) {
   if (!list.some(ex => ex.module === 'safe_game')) { list = [...list, SAFE_EXERCISE]; changed = true }
   if (!list.some(ex => ex.module === 'careful_speech')) { list = [...list, CAREFUL_EXERCISE]; changed = true }
   const next = list.map(ex => {
+    if (ex.module === 'tongue_position' && !ex.params?.gym) {
+      changed = true
+      return {
+        ...ex,
+        name: ex.name === 'Tongue Up Position' ? GYM_NAME : ex.name,
+        instruction: GYM_INSTRUCTION,
+        duration: Math.max(Number(ex.duration) || 0, 5),
+        params: { ...(ex.params || {}), gym: DEFAULT_GYM },
+      }
+    }
     if (ex.module === 'sz_lip') {
       const filled = fillSzLipSets(ex)
       if (filled !== ex) changed = true
@@ -502,16 +517,17 @@ export function migrateExercises(exercises) {
 export const DEFAULT_EXERCISES = [
   {
     id: 'ex_1',
-    name: 'Tongue Up Position',
+    name: GYM_NAME,
     module: 'tongue_position',
     schedule: [],
-    duration: 2,
+    duration: 5,
     points: 10,
-    instruction: 'Przez chwilę skup się na spokojnym utrzymaniu prawidłowej pozycji języka. Unieś czubek języka ku górze podniebienia i utrzymaj przez 5 sekund. Ćwicz dokładnie, bez pośpiechu.',
+    instruction: GYM_INSTRUCTION,
     alarmEnabled: true,
     alarmAdvanceSec: 30,
     alarmSound: 'phone',
     visionEnabled: false,
+    params: { gym: DEFAULT_GYM },
   },
   {
     id: 'ex_2',
@@ -775,9 +791,9 @@ export const MODULES = [
   },
   {
     id: 'tongue_position',
-    name: 'Tongue Up Position',
+    name: 'Gimnastyka buzi i języka',
     emoji: '👅',
-    desc: 'Trening prawidłowej pozycji spoczynkowej języka',
+    desc: 'Seria ćwiczeń warg, języka i podniebienia miękkiego z animacją z przodu i z boku (winda, koszyczek, liczenie zębów, uśmiechy, całuski, wąsy, ziewanie i inne)',
     available: true,
     future: ['Analiza kamery'],
     requiresDevice: false,

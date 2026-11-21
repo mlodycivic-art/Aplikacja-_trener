@@ -10,6 +10,7 @@ import SafeGame from './games/SafeGame'
 import TongueClosedExercise from './TongueClosedExercise'
 import MixSpeechExercise from './MixSpeechExercise'
 import CarefulSpeechWindow from './CarefulSpeechWindow'
+import GymSeries from './gym/GymSeries'
 import { addResult } from '../data/resultsStore'
 import { performancePoints } from '../data/points'
 
@@ -1175,8 +1176,7 @@ function buildInstruction(exercise) {
   const p = exercise.params || {}
 
   if (exercise.module === 'tongue_position') {
-    const sec = p.activeSec ?? 5
-    return `Przez chwilę skup się na spokojnym utrzymaniu prawidłowej pozycji języka. Otwórz szeroko usta, a następnie dotknij czubkiem języka podniebienia, tak aby język utworzył koszyczek, i utrzymaj przez ${sec} sekund. Ćwicz dokładnie, bez pośpiechu.`
+    return 'Seria krótkich ćwiczeń w trzech etapach: wargi, język i podniebienie miękkie. Patrz na rysunek z przodu i z boku i rób to samo, w tempie animacji.'
   }
 
   if (exercise.module === 'sz_lip') {
@@ -1252,7 +1252,7 @@ export default function ExerciseScreen({ exercise, plan, setPlan, user, setUser,
 
   const renderTimer = () => {
     switch (exercise.module) {
-      case 'tongue_position': return <TongueTimer   exercise={exercise} onHalfPoints={handleHalfPoints} onComplete={handleComplete} />
+      case 'tongue_position': return <GymSeries exercise={exercise} onComplete={handleComplete} />
       case 'sz_lip':          return <SzLipExercise exercise={exercise} onComplete={handleComplete} />
       case 'mix_speech':      return <MixSpeechExercise exercise={exercise} onComplete={handleComplete} />
       case 'bubble_game':     return <BubbleGame exercise={exercise} onComplete={handleComplete} />
