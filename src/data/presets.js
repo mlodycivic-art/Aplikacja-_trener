@@ -4,7 +4,7 @@
 // Plik jest częścią aplikacji (idzie z `git push`), więc każde nowe urządzenie przy pierwszym
 // uruchomieniu startuje z tymi ustawieniami. W Profilu można je też wczytać ręcznie.
 //
-// DO PLIKU WCHODZI: ćwiczenia z godzinami i parametrami, lista słów, wygląd, tryb stanowiska,
+// DO PLIKU WCHODZI: ćwiczenia z godzinami i parametrami, plan 4‑tygodniowy, lista słów, wygląd, tryb stanowiska,
 //                   przypomnienie o języku, z profilu tylko: imię, wiek, typ, cel.
 // NIE WCHODZI NIGDY: wyniki, punkty, „zdiagnozowany problem”, kalibracje mikrofonu i kamery,
 //                   nagrane wzorce — to dane osoby albo rzeczy przypisane do urządzenia,
@@ -13,7 +13,7 @@
 import { DEFAULT_USER } from './defaultData'
 
 const APP_ID = 'speech-training-coach'
-const SETTING_KEYS = ['stc_exercises', 'stc_words', 'stc_theme', 'stc_setup_mode', 'stc_tongue_check_on']
+const SETTING_KEYS = ['stc_exercises', 'stc_words', 'stc_theme', 'stc_setup_mode', 'stc_tongue_check_on', 'stc_program']
 const USER_FIELDS = ['name', 'age', 'type', 'goal']
 const APPLIED_KEY = 'stc_preset_applied'     // data pliku, z którego to urządzenie ostatnio brało ustawienia
 const CHECKED_KEY = 'stc_preset_checked'     // pierwsze uruchomienie już sprawdziło, czy plik istnieje

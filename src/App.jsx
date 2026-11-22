@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { DEFAULT_USER, DEFAULT_EXERCISES, generateTodayPlan, migrateExercises } from './data/defaultData'
+import { syncProgram, readProgram, writeProgram, DEFAULT_PROGRAM_STATE } from './data/program'
 import { useStorage } from './hooks/useStorage'
 import { localDateKey } from './data/resultsStore'
 import { useAlarmChecker, useTitleFlash } from './components/useAlarm'
@@ -49,13 +50,27 @@ export default function App() {
   // Jednorazowe dopisanie nowych zestawów głoskowych do zapisanych ćwiczeń (bez nadpisywania treści trenera)
   useEffect(() => {
     // Wersja danych: migracja uruchamia się raz, żeby zestaw usunięty później przez trenera nie wracał
-    const DATA_VERSION = 8
+    const DATA_VERSION = 9
     let done = 0
     try { done = Number(localStorage.getItem('stc_data_version') || 0) } catch (e) {}
-    if (done >= DATA_VERSION) return
-    const migrated = migrateExercises(exercises)
-    if (migrated !== exercises) setExercises(migrated)
-    try { localStorage.setItem('stc_data_version', String(DATA_VERSION)) } catch (e) {}
+    let list = exercises
+    if (done < DATA_VERSION) {
+      list = migrateExercises(exercises)
+      // v9: plan 4‑tygodniowy domyślnie włączony (start 23.11.2026), chyba że już jest ustawiony
+      if (done < 9 && !readProgram()) writeProgram(DEFAULT_PROGRAM_STATE)
+      try { localStorage.setItem('stc_data_version', String(DATA_VERSION)) } catch (e) {}
+    }
+    // Plan 4‑tygodniowy: nowy tydzień → nowe godziny i zestawy, a dzisiejszy plan budujemy od nowa
+    const synced = syncProgram(list)
+    if (synced) list = synced
+    if (list !== exercises) setExercises(list)
+    if (synced) {
+      setPlan(prev => {
+        const fresh = generateTodayPlan(synced)
+        const old = Object.fromEntries((prev || []).map(e => [e.id, e]))
+        return fresh.map(e => (old[e.id] && old[e.id].status !== 'planned' ? { ...e, status: old[e.id].status } : e))
+      })
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 

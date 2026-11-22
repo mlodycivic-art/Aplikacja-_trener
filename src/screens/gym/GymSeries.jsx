@@ -4,7 +4,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { FacePair, usePoseLoop, poseAt } from './FaceRig'
-import { buildRun, stageName, estimateSec, normalizeGym } from '../../data/gymExercises'
+import { buildRun, stageName, normalizeGym } from '../../data/gymExercises'
 import { speak, plural } from '../../data/voice'
 import { addResult } from '../../data/resultsStore'
 
@@ -16,7 +16,7 @@ const sleep = (ms) => new Promise(r => setTimeout(r, ms))
 export default function GymSeries({ exercise, onComplete }) {
   const gym = useMemo(() => normalizeGym(exercise.params?.gym), [exercise])
   const run = useMemo(() => buildRun(gym), [gym])
-  const [phase, setPhase] = useState('intro')      // intro | prep | run | done
+  const [phase, setPhase] = useState('prep')       // prep | run | done (seria startuje od razu, bez ekranu z listą)
   const [idx, setIdx] = useState(0)
   const [rep, setRep] = useState(0)
   const [paused, setPaused] = useState(false)
@@ -24,10 +24,12 @@ export default function GymSeries({ exercise, onComplete }) {
   const doneReps = useRef(0)
   const startedAt = useRef(0)
   const token = useRef(0)                          // przerywa trwające przygotowanie (Dalej, Wstecz, wyjście)
+  const skipWait = useRef(null)                    // „Pomiń instrukcję”: kończy czytanie i przechodzi do odliczania
+  const [canSkip, setCanSkip] = useState(false)
 
   const st = run[idx]
   const playing = phase === 'run' && !paused
-  const keys = phase === 'run' || phase === 'intro' ? (st?.keys || STILL) : STILL
+  const keys = phase === 'run' ? (st?.keys || STILL) : STILL
   const cycle = st?.cycle || 3000
 
   // wywoływane z pętli animacji raz na pełne powtórzenie (poza renderowaniem, więc bez podwójnych wywołań)
@@ -38,7 +40,7 @@ export default function GymSeries({ exercise, onComplete }) {
     setRep(repRef.current)
     if (repRef.current >= st.reps) prepare(idx + 1)
   }
-  const pose = usePoseLoop(keys, cycle, playing || phase === 'intro', phase === 'run' ? onCycle : null)
+  const pose = usePoseLoop(keys, cycle, playing, phase === 'run' ? onCycle : null)
 
   // Przygotowanie ćwiczenia: nazwa i wskazówka czytane wolniej, potem odliczanie 3-2-1, dopiero wtedy start.
   const prepare = async (to) => {
@@ -48,15 +50,25 @@ export default function GymSeries({ exercise, onComplete }) {
     const s = run[to]
     repRef.current = 0
     setIdx(to); setRep(0); setCount(null); setPaused(false); setPhase('prep')
+    let skipped = false, mySkip = null
+    const skipP = new Promise(r => { mySkip = () => { skipped = true; r() }; skipWait.current = mySkip })
+    setCanSkip(true)
     if (gym.voice) {
-      await speak(`${s.name}.`, { rate: SLOW })
-      if (my !== token.current) return
-      await sleep(250)
-      if (my !== token.current) return
-      await speak(s.tongueHold ? `${s.hint} Język przez cały czas trzymaj u góry.` : s.hint, { rate: SLOW })
+      const reading = (async () => {
+        await speak(`${s.name}.`, { rate: SLOW })
+        if (skipped || my !== token.current) return
+        await sleep(250)
+        if (skipped || my !== token.current) return
+        await speak(s.tongueHold ? `${s.hint} Język przez cały czas trzymaj u góry.` : s.hint, { rate: SLOW })
+      })()
+      await Promise.race([reading, skipP])
     } else {
-      await sleep(3500)
+      await Promise.race([sleep(3500), skipP])
     }
+    if (skipWait.current === mySkip) skipWait.current = null   // nie kasuj przycisku nowszego przygotowania
+    if (my !== token.current) return
+    setCanSkip(false)
+    if (skipped) { try { window.speechSynthesis?.cancel() } catch (e) {} }
     for (const c of [3, 2, 1]) {
       if (my !== token.current) return
       setCount(c)
@@ -68,12 +80,13 @@ export default function GymSeries({ exercise, onComplete }) {
     setPhase('run')
   }
 
-  useEffect(() => () => { token.current++; try { window.speechSynthesis?.cancel() } catch (e) {} }, [])
-
-  const start = () => {
+  // start od razu po wejściu w ćwiczenie
+  useEffect(() => {
     startedAt.current = Date.now(); doneReps.current = 0
-    prepare(0)
-  }
+    if (run.length) prepare(0)
+    return () => { token.current++; try { window.speechSynthesis?.cancel() } catch (e) {} }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
   const finish = () => {
     token.current++
     setPhase('done'); setCount(null)
@@ -92,31 +105,6 @@ export default function GymSeries({ exercise, onComplete }) {
       <div className="card">
         <p style={{ fontWeight: 700 }}>W serii nie ma włączonych ćwiczeń.</p>
         <p className="text-muted" style={{ fontSize: 13 }}>Dorosły włącza je w Trenerze, w ustawieniach tego ćwiczenia.</p>
-      </div>
-    )
-  }
-
-  if (phase === 'intro') {
-    const sec = estimateSec(gym)
-    let lastStage = null
-    return (
-      <div className="card" data-gym="intro">
-        <FacePair pose={pose} hold={!!st?.tongueHold} />
-        <div style={{ margin: '14px 0 10px', fontSize: 14, lineHeight: 1.6 }}>
-          {run.map((s, i) => {
-            const head = s.stage !== lastStage; lastStage = s.stage
-            return (
-              <div key={s.id}>
-                {head && <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--muted)', marginTop: i ? 10 : 0 }}>{stageName(s.stage).toUpperCase()}</div>}
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>{s.name}</span><span className="text-muted">{s.reps}×</span></div>
-              </div>
-            )
-          })}
-        </div>
-        <p className="text-muted" style={{ fontSize: 13, marginBottom: 12 }}>
-          Razem około {Math.max(1, Math.round(sec / 60))} min. Patrz na rysunek i rób to samo. Najlepiej przed lustrem albo z kamerą w telefonie.
-        </p>
-        <button className="btn btn-primary btn-full" onClick={start} data-act="gym-start">Zaczynamy</button>
       </div>
     )
   }
@@ -164,6 +152,9 @@ export default function GymSeries({ exercise, onComplete }) {
       <div style={{ textAlign: 'center', fontWeight: 800, fontSize: 15, minHeight: 22, marginBottom: 10 }}>
         {phase === 'prep' ? (count != null ? 'Przygotuj się…' : 'Posłuchaj i popatrz') : paused ? 'Pauza' : `Powtórzenie ${Math.min(rep + 1, next.reps)} z ${next.reps}`}
       </div>
+      {phase === 'prep' && canSkip && (
+        <button className="btn btn-ghost btn-full" style={{ marginBottom: 8, fontWeight: 800 }} onClick={() => skipWait.current?.()} data-act="gym-skip-intro">Pomiń instrukcję</button>
+      )}
       <div style={{ display: 'flex', gap: 8 }}>
         <button className="btn btn-ghost" style={{ flex: 1 }} onClick={back}>Wstecz</button>
         <button className="btn btn-primary" style={{ flex: 1 }} disabled={phase !== 'run'} onClick={() => setPaused(v => !v)} data-act="gym-pause">{paused ? 'Wznów' : 'Pauza'}</button>

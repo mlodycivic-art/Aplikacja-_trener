@@ -696,6 +696,8 @@ export function generateTodayPlan(exercises) {
         templateId: ex.id,
         hour: slot.hour,
         status: 'planned',
+        // Termin w środku sesji (plan 4‑tygodniowy): bez osobnego alarmu
+        ...(slot.alarm === false ? { alarmEnabled: false } : {}),
         params,
       })
     })

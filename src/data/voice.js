@@ -24,8 +24,12 @@ export function speak(text, { voiceName, rate = 0.92, pitch = 1.0 } = {}) {
       u.lang = 'pl-PL'; u.rate = rate; u.pitch = pitch
       let done = false
       const end = (ok) => { if (!done) { done = true; resolve(ok) } }
+      let started = false
+      u.onstart = () => { started = true }
       u.onend = () => end(true)
       u.onerror = () => end(false)
+      // gdy przeglądarka w ogóle nie zacznie mówić (np. iPhone blokuje głos bez dotknięcia ekranu), nie czekamy
+      setTimeout(() => { if (!started) end(false) }, 2500)
       setTimeout(() => end(false), Math.max(15000, text.length * 140))   // bezpiecznik: niektóre przeglądarki nie zgłaszają końca
       synth.cancel()
       synth.speak(u)

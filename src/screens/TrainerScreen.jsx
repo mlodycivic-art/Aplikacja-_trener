@@ -2,6 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import { playSound } from '../components/useAlarm'
 import { DEFAULT_SOUND_SETS, PROPOSED_SET_IDS, generateTodayPlan } from '../data/defaultData'
 import GymSettings from './gym/GymSettings'
+import ProgramCard from './ProgramCard'
 import { plural } from '../data/voice'
 import { buildRun, estimateSec } from '../data/gymExercises'
 
@@ -465,6 +466,8 @@ export default function TrainerScreen({ exercises, setExercises, plan, setPlan }
     <div>
       <p className="section-title">Trener</p>
       <p className="section-sub">Harmonogram i parametry ćwiczeń</p>
+
+      <ProgramCard exercises={exercises} setExercises={setExercises} plan={plan} setPlan={setPlan} />
 
       {(exercises || []).map(ex => (
         <div key={ex.id} className="card" style={{ marginBottom: 10 }}>
