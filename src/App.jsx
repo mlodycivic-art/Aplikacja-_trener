@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { DEFAULT_USER, DEFAULT_EXERCISES, generateTodayPlan, migrateExercises } from './data/defaultData'
 import { syncProgram, readProgram, writeProgram, DEFAULT_PROGRAM_STATE } from './data/program'
+import { CARRY_KEY } from './data/presets'
 import { useStorage } from './hooks/useStorage'
 import { localDateKey } from './data/resultsStore'
 import { useAlarmChecker, useTitleFlash } from './components/useAlarm'
@@ -66,6 +67,12 @@ export default function App() {
       try { localStorage.setItem('stc_data_version', String(DATA_VERSION)) } catch (e) {}
     }
     // Plan 4‑tygodniowy: nowy tydzień → nowe godziny i zestawy, a dzisiejszy plan budujemy od nowa
+    // Po samoczynnym wczytaniu ustawień z iMaca: dzisiejsze „zrobione” zostają zrobione
+    let carry = null
+    try { carry = JSON.parse(localStorage.getItem(CARRY_KEY) || 'null'); localStorage.removeItem(CARRY_KEY) } catch (e) {}
+    if (carry && Object.keys(carry).length) {
+      setPlan(prev => (prev || []).map(e => (carry[e.id] ? { ...e, status: carry[e.id] } : e)))
+    }
     const synced = syncProgram(list)
     if (synced) list = synced
     if (list !== exercises) setExercises(list)

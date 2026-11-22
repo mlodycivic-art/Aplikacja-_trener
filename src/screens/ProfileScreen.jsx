@@ -43,8 +43,8 @@ function PresetCard() {
     <div className="card" data-card="preset">
       <h3 style={{ fontWeight: 800, marginBottom: 6 }}>Ustawienia domyślne</h3>
       <p style={{ fontSize: 13, color: 'var(--muted)', marginBottom: 10, lineHeight: 1.5 }}>
-        Ustaw aplikację na jednym urządzeniu i zapisz ustawienia do pliku w aplikacji. Każde nowe urządzenie zacznie od nich samo,
-        a na używanym wczytasz je tym przyciskiem. Przenoszą się: ćwiczenia z godzinami, lista słów, wygląd, imię, wiek i cel.
+        Ustaw aplikację na iMacu, zapisz ustawienia do pliku w aplikacji i wyślij na GitHub. Telefon i tablet wczytają je same
+        przy następnym otwarciu (wyniki zostają). Przenoszą się: ćwiczenia z godzinami, lista słów, wygląd, imię, wiek i cel.
         Nie przenoszą się: wyniki, punkty, „zdiagnozowany problem” i kalibracje.
       </p>
       <div className="row-list-item">
@@ -61,14 +61,15 @@ function PresetCard() {
       </div>
       {msg === 'saved' && (
         <div style={{ fontSize: 13, marginTop: 10, lineHeight: 1.6 }} data-preset-msg="saved">
-          <b style={{ color: 'var(--green)' }}>Zapisano w folderze aplikacji</b> (public/preset.json). Żeby trafiło na inne urządzenia, wyślij na GitHub:
-          <pre style={{ fontSize: 12, background: 'var(--soft)', padding: 10, borderRadius: 10, marginTop: 6, overflowX: 'auto' }}>{'cd ~/Desktop/Karolek-mowa\ngit add -A\ngit commit -m "Ustawienia domyslne"\ngit push'}</pre>
+          <b style={{ color: 'var(--green)' }}>Zapisano w folderze aplikacji</b> (public/preset.json). Teraz wyślij na GitHub — w nowej karcie terminala (Cmd+T):
+          <pre style={{ fontSize: 12, background: 'var(--soft)', padding: 10, borderRadius: 10, marginTop: 6, overflowX: 'auto' }}>{'cd ~/Desktop/Karolek-mowa\nnpm run wyslij'}</pre>
+          Po ok. minucie telefon i tablet wczytają nowe ustawienia przy następnym otwarciu aplikacji.
         </div>
       )}
       {msg === 'downloaded' && (
         <div style={{ fontSize: 13, marginTop: 10, lineHeight: 1.6 }} data-preset-msg="downloaded">
-          <b>Plik preset.json został pobrany.</b> Żeby stał się ustawieniami domyślnymi, musi trafić do folderu <b>public</b> w aplikacji
-          na komputerze i pójść na GitHub. Najprościej zapisywać ustawienia na komputerze, na którym działa „npm run dev”: tam zapis jest automatyczny.
+          <b>Plik preset.json jest w Pobranych.</b> Na iMacu w terminalu wpisz poniższe — komenda sama przeniesie plik do aplikacji i wyśle na GitHub:
+          <pre style={{ fontSize: 12, background: 'var(--soft)', padding: 10, borderRadius: 10, marginTop: 6, overflowX: 'auto' }}>{'cd ~/Desktop/Karolek-mowa\nnpm run wyslij'}</pre>
         </div>
       )}
     </div>

@@ -14,6 +14,7 @@ import GymSeries from './gym/GymSeries'
 import { addResult } from '../data/resultsStore'
 import { performancePoints } from '../data/points'
 
+import SPOKEN_FORMS from '../data/spokenForms.json'
 const TAU = 2 * Math.PI
 
 // ── Szacowanie czasu odczytu wyrazu (ms) na podstawie długości i tempa ───────
@@ -219,11 +220,28 @@ function SzLipTimer({ exercise, onComplete }) {
   const phaseRef          = useRef('idle')
   const speakingGuardRef  = useRef(null)
 
+  // ── Gra w kręgle: mikrofon słucha TYLKO w czasie na powtórzenie (po lektorze), osobno dla każdego słowa.
+  // Po każdej serii rzut: ile słów dziecko powtórzyło, tyle kręgli. Bez mikrofonu ćwiczenie działa jak dawniej.
+  const mic = useMicRhythm()
+  const micOnRef       = useRef(false)
+  const micAskedRef    = useRef(false)
+  const narrStartRef   = useRef(0)
+  const throwHistoryRef = useRef([])
+  const afterThrowRef  = useRef(null)
+  const [showThrow, setShowThrow] = useState(false)
+  const [throwPct,  setThrowPct]  = useState(0)
+  const ensureMic = () => {
+    if (micAskedRef.current) return
+    micAskedRef.current = true
+    Promise.resolve(mic.start()).then(ok => { micOnRef.current = !!ok })
+  }
+
   useEffect(() => () => {
     clearTimeout(timeoutRef.current)
     clearTimeout(showWordTimerRef.current)
     if (speakingGuardRef.current) speakingGuardRef.current.done = true
     try { window.speechSynthesis?.cancel() } catch (e) {}
+    mic.stop()
   }, [])
 
   // Auto-zakończenie gdy wszystkie słowa/powtórzenia wykonane.
@@ -245,6 +263,8 @@ function SzLipTimer({ exercise, onComplete }) {
     if (speakingGuardRef.current) speakingGuardRef.current.done = true
     clearTimeout(showWordTimerRef.current)
 
+    mic.setWindowActive(false)   // teraz mówi lektor — jego głosu nie liczymy
+    narrStartRef.current = performance.now()
     idxStateRef.current = { repIdx: rIdx, wordIdx: wIdx }
     setRepIdx(rIdx)
     setWordIdx(wIdx)
@@ -267,7 +287,15 @@ function SzLipTimer({ exercise, onComplete }) {
       if (guard.done) return
       guard.done = true
       clearTimeout(timeoutRef.current)
-      const hideDelay = Math.max(50, (gapSec - 0.5) * 1000)
+      // Z mikrofonem dziecko dostaje na powtórzenie tyle czasu, ile mówił lektor (+0,3 s), nie mniej niż przerwa z ustawień
+      let gapMs = gapSec * 1000
+      if (micOnRef.current) {
+        const narrMs = performance.now() - narrStartRef.current
+        gapMs = Math.max(gapMs, Math.min(2500, narrMs + 300), 900)
+        mic.markWord(wIdx)
+        mic.setWindowActive(true)
+      }
+      const hideDelay = Math.max(50, gapMs - 500)
       timeoutRef.current = setTimeout(() => {
         setWordVisible(false)
         setTimeout(() => advance(), 500)
@@ -277,12 +305,14 @@ function SzLipTimer({ exercise, onComplete }) {
     if (speakOn && window.speechSynthesis) {
       try {
         window.speechSynthesis.cancel()
-        const u = new SpeechSynthesisUtterance(words[wIdx])
+        // lektor dostaje zapis, którego nie literuje (np. „ysz”) — patrz scripts/lektor.mjs
+        const u = new SpeechSynthesisUtterance(SPOKEN_FORMS[String(words[wIdx]).trim().toLowerCase()] || words[wIdx])
         u.lang  = 'pl-PL'
         u.rate  = Math.max(0.1, Math.min(2, rate))
         u.pitch = Math.max(0.1, Math.min(2, pitch))
         const plVoice = getPolishVoice()
         if (plVoice) u.voice = plVoice
+        u.onstart = () => { narrStartRef.current = performance.now() }
         u.onend   = () => reveal()
         u.onerror = () => reveal()
         window.speechSynthesis.speak(u)
@@ -298,13 +328,27 @@ function SzLipTimer({ exercise, onComplete }) {
     const nextWordIdx = wIdx + 1
     if (nextWordIdx >= words.length) {
       const nextRep = rIdx + 1
-      if (nextRep >= reps) {
-        phaseRef.current = 'done'
-        setPhase('done') // useEffect wywołuje onComplete()
-        setRunning(false)
+      const goOn = () => {
+        if (nextRep >= reps) {
+          phaseRef.current = 'done'
+          setPhase('done') // useEffect wywołuje onComplete()
+          setRunning(false)
+          return
+        }
+        enterSpeaking(nextRep, 0)
+      }
+      mic.setWindowActive(false)
+      if (micOnRef.current) {
+        // koniec serii = rzut kulą
+        const res = mic.getResult(words.length, 0.15)
+        mic.resetCounters()
+        throwHistoryRef.current = [...throwHistoryRef.current, res.ratio * 100]
+        afterThrowRef.current = goOn
+        setThrowPct(res.ratio * 100)
+        setShowThrow(true)
         return
       }
-      enterSpeaking(nextRep, 0)
+      goOn()
     } else {
       enterSpeaking(rIdx, nextWordIdx)
     }
@@ -313,6 +357,7 @@ function SzLipTimer({ exercise, onComplete }) {
   const handleStartPause = () => {
     if (running) {
       setRunning(false)
+      mic.setWindowActive(false)
       clearTimeout(timeoutRef.current)
       clearTimeout(showWordTimerRef.current)
       if (speakingGuardRef.current) speakingGuardRef.current.done = true
@@ -323,6 +368,7 @@ function SzLipTimer({ exercise, onComplete }) {
     }
 
     setRunning(true)
+    ensureMic()
     if (phase === 'idle') {
       enterSpeaking(0, 0)
     } else if (phase !== 'done') {
@@ -365,8 +411,15 @@ function SzLipTimer({ exercise, onComplete }) {
         </button>
       </div>
 
+      {showThrow && (
+        <BowlingReward key={throwHistoryRef.current.length} pct={throwPct} history={throwHistoryRef.current}
+          missText="Kula w rynnie. W następnej serii powtarzaj głośno po lektorze."
+          scoreLabel="Powtórzone słowa"
+          onDone={() => { setShowThrow(false); const f = afterThrowRef.current; afterThrowRef.current = null; if (f) f() }} />
+      )}
+
       <svg width={SVG_W} height={SVG_H} viewBox={`0 0 ${SVG_W} ${SVG_H}`}
-        style={{ display: 'block', margin: '0 auto' }}>
+        style={{ display: showThrow ? 'none' : 'block', margin: '0 auto' }}>
 
         <Arc cx={CX} cy={CY} r={R} pct={totalPct} color="#22C55E" strokeWidth={12} transition="1s" />
         <circle cx={CX} cy={CY} r={innerR} fill="#F8FAFC" />
@@ -421,7 +474,7 @@ function SzLipTimer({ exercise, onComplete }) {
           : `Powtórz: "${currentWord}"`}
       </div>
 
-      {phase === 'done' ? (
+      {showThrow ? null : phase === 'done' ? (
         <button className="btn btn-green btn-full" onClick={onComplete}>✓ Ukończ ćwiczenie</button>
       ) : (
         <button className="btn btn-primary btn-full" onClick={handleStartPause}>
@@ -505,6 +558,14 @@ function RhythmTimer({ exercise, onComplete }) {
   // żeby tempo ucznia było DOSŁOWNIE takie samo jak tempo, które usłyszał.
   const recordedDurationsRef = useRef({}) // { [sentenceIdx]: [ms, ms, ...] }
   const safetyTimerRef = useRef(null)
+  // „Waga” słowa (litery + stała) i ile ms przypada na jednostkę wagi przy tym lektorze i tym tempie.
+  // Startujemy od szacunku, a po każdym przeczytanym zdaniu wpisujemy wartość ZMIERZONĄ.
+  const wordWeight = (w) => ((w || '').replace(/[.,!?…:;]/g, '').length || 1) + 1.4
+  const unitMsRef = useRef(110 / Math.max(0.01, narratorRate))
+  // Bieżące czytanie lektora (gdy przeglądarka nie podaje granic słów, mierzymy całe zdanie)
+  const narrRef = useRef(null)
+  const narrWaitTimerRef = useRef(null)
+  const hasSpeech = typeof window !== 'undefined' && !!window.speechSynthesis
 
   const currentWords = (sentenceList[sentenceIdx] || '').trim().split(/\s+/).filter(Boolean)
 
@@ -513,8 +574,11 @@ function RhythmTimer({ exercise, onComplete }) {
     s + 2 * sent.trim().split(/\s+/).filter(Boolean).length, 0)
 
   // Jedno wspólne tempo dla obu przebiegów — pełna synchronizacja lektor ↔ wizualizacja
-  const wordReadMs = (w) => estimateWordMs(w, narratorRate)
+  const wordReadMs = (w) => wordWeight(w) * unitMsRef.current
   const wordPauseMs = (w) => {
+    // Lektor czyta zdanie płynnie, więc podkreślanie też idzie bez sztucznych przerw.
+    // Przerwy z ustawień zostają tylko tam, gdzie nie ma lektora w ogóle.
+    if (hasSpeech) return 0
     let p = pauseSec * 1000
     if (/,$/.test(w)) p += commaPause * 1000
     if (/\.$/.test(w)) p += periodPause * 1000
@@ -558,6 +622,8 @@ function RhythmTimer({ exercise, onComplete }) {
     bump() // unieważnij WSZYSTKO co mogło być w toku (boundary/onend/safetyTimer)
     clearTimeout(timeoutRef.current)
     clearTimeout(safetyTimerRef.current)
+    clearTimeout(narrWaitTimerRef.current)
+    narrRef.current = null
     cancelAnimationFrame(dotAnimRef.current)
     try { window.speechSynthesis?.cancel() } catch (e) {}
   }, [])
@@ -588,8 +654,12 @@ function RhythmTimer({ exercise, onComplete }) {
           const u = new SpeechSynthesisUtterance(sentence)
           u.lang = 'pl-PL'
           u.rate = Math.max(0.1, Math.min(2, narratorRate))
+          const nar = trackNarrator(sIdx, words)
+          u.onstart = () => { nar.t0 = performance.now() }
+          u.onend = () => narratorEnded(nar, true)
+          u.onerror = () => narratorEnded(nar, false)
           window.speechSynthesis.speak(u)
-        } catch (e) {}
+        } catch (e) { narrRef.current = null }
       }
       goToWord(sIdx, 0)
       return
@@ -602,6 +672,8 @@ function RhythmTimer({ exercise, onComplete }) {
       u.rate = Math.max(0.1, Math.min(2, narratorRate))
 
       let boundaryUsed = false
+      const nar = trackNarrator(sIdx, words)
+      u.onstart = () => { nar.t0 = performance.now() }
       let lastBoundaryTime = performance.now()
       let lastWordIdx = -1
       const recordDuration = (now) => {
@@ -646,7 +718,8 @@ function RhythmTimer({ exercise, onComplete }) {
       }
 
       u.onend = () => {
-        if (tokenRef.current !== myToken) return
+        // Podświetlanie poszło już własnym zegarem (brak granic słów) — zmierz chociaż całe zdanie
+        if (tokenRef.current !== myToken) { narratorEnded(nar, true); return }
         clearTimeout(safetyTimerRef.current)
         if (boundaryUsed) {
           // Ostatnie słowo: użyj średniej zmierzonych czasów POZOSTAŁYCH słów w tym zdaniu.
@@ -654,13 +727,9 @@ function RhythmTimer({ exercise, onComplete }) {
           // (może być nieprecyzyjne). Średnia z realnych pomiarów = najlepsza aproksymacja.
           if (lastWordIdx >= 0) {
             if (!recordedDurationsRef.current[sIdx]) recordedDurationsRef.current[sIdx] = []
-            const otherDurations = (recordedDurationsRef.current[sIdx] || [])
-              .filter((d, i) => i < lastWordIdx && d > 0)
-            const avgDuration = otherDurations.length > 0
-              ? Math.round(otherDurations.reduce((a, b) => a + b, 0) / otherDurations.length)
-              : estimateWordMs(words[lastWordIdx], narratorRate)
-            recordedDurationsRef.current[sIdx][lastWordIdx] = avgDuration
+            recordedDurationsRef.current[sIdx][lastWordIdx] = lastWordMs(sIdx, words, lastWordIdx)
           }
+          narrRef.current = null
           finishNarratedPass(sIdx, words.length)
         } else {
           boundarySupportedRef.current = false
@@ -668,18 +737,14 @@ function RhythmTimer({ exercise, onComplete }) {
         }
       }
       u.onerror = () => {
-        if (tokenRef.current !== myToken) return
+        if (tokenRef.current !== myToken) { narratorEnded(nar, false); return }
         clearTimeout(safetyTimerRef.current)
         if (boundaryUsed) {
           if (lastWordIdx >= 0) {
             if (!recordedDurationsRef.current[sIdx]) recordedDurationsRef.current[sIdx] = []
-            const otherDurations = (recordedDurationsRef.current[sIdx] || [])
-              .filter((d, i) => i < lastWordIdx && d > 0)
-            const avgDuration = otherDurations.length > 0
-              ? Math.round(otherDurations.reduce((a, b) => a + b, 0) / otherDurations.length)
-              : estimateWordMs(words[lastWordIdx], narratorRate)
-            recordedDurationsRef.current[sIdx][lastWordIdx] = avgDuration
+            recordedDurationsRef.current[sIdx][lastWordIdx] = lastWordMs(sIdx, words, lastWordIdx)
           }
+          narrRef.current = null
           finishNarratedPass(sIdx, words.length)
         } else {
           boundarySupportedRef.current = false
@@ -691,6 +756,49 @@ function RhythmTimer({ exercise, onComplete }) {
     } catch (e) {
       goToWord(sIdx, 0)
     }
+  }
+
+  // Ostatnie słowo nie ma „następnej granicy”, więc liczymy je z tempa pozostałych słów (ms na literę)
+  const lastWordMs = (sIdx, words, lastIdx) => {
+    const rec = recordedDurationsRef.current[sIdx] || []
+    let ms = 0, weight = 0
+    for (let i = 0; i < lastIdx; i++) if (rec[i] > 0) { ms += rec[i]; weight += wordWeight(words[i]) }
+    if (weight > 0) unitMsRef.current = ms / weight
+    return Math.round(wordWeight(words[lastIdx]) * unitMsRef.current)
+  }
+
+  const trackNarrator = (sIdx, words) => {
+    clearTimeout(narrWaitTimerRef.current)
+    const nar = { sIdx, words, t0: performance.now(), done: false, waiting: false }
+    narrRef.current = nar
+    return nar
+  }
+
+  // Lektor skończył zdanie, a granic słów nie było: rozkładamy ZMIERZONY czas zdania na słowa
+  // (proporcjonalnie do długości) i z tego samego bierzemy tempo dla następnych zdań.
+  const narratorEnded = (nar, ok) => {
+    if (narrRef.current !== nar || nar.done) return
+    nar.done = true
+    const total = performance.now() - nar.t0
+    const sumW = nar.words.reduce((a, w) => a + wordWeight(w), 0)
+    if (ok && total > 250 && sumW > 0 && !(recordedDurationsRef.current[nar.sIdx] || []).length) {
+      unitMsRef.current = total / sumW
+      recordedDurationsRef.current[nar.sIdx] = nar.words.map(w => Math.round(wordWeight(w) * unitMsRef.current))
+    }
+    if (nar.waiting) { clearTimeout(narrWaitTimerRef.current); startSilentPass(nar.sIdx) }
+    else if (ok && passRef.current === 'with_narrator' && sentenceIdxRef.current === nar.sIdx && boundarySupportedRef.current === false) {
+      // lektor skończył wcześniej niż szacowane podświetlanie — nie każemy czekać, zaczyna się powtórka
+      clearTimeout(timeoutRef.current)
+      setStepsDone(n => n + Math.max(0, nar.words.length - 1 - Math.max(0, idxRef.current)))
+      startSilentPass(nar.sIdx)
+    }
+  }
+
+  const startSilentPass = (sIdx) => {
+    passRef.current = 'silent'
+    setPass('silent')
+    placeDotInstant(0)
+    goToWord(sIdx, 0)
   }
 
   // Lektor naprawdę skończył (zdarzenie 'boundary' działało) — zalicz cały przebieg
@@ -727,11 +835,18 @@ function RhythmTimer({ exercise, onComplete }) {
     setPhase('reading')
     phaseStartedAtRef.current = performance.now()
     const words = (sentenceList[sIdx] || '').trim().split(/\s+/).filter(Boolean)
-    const d = getWordDuration(sIdx, wIdx, words[wIdx])
+    let d = getWordDuration(sIdx, wIdx, words[wIdx])
+    if (passRef.current === 'silent') {
+      mic.markWord(wIdx)
+      // po ostatnim słowie chwila zapasu — dziecko zwykle kończy odrobinę po kropce
+      if (hasSpeech && wIdx === words.length - 1) d += 350
+    }
+    if (hasSpeech && wIdx > 0) animateDotTo(wIdx, 150)
     phaseDurationRef.current = d
     timeoutRef.current = setTimeout(() => {
       if (tokenRef.current !== myToken) return
-      enterWordPause(sIdx, wIdx)
+      if (hasSpeech) advanceWord(sIdx, wIdx)   // bez przerw — tak jak czyta lektor
+      else enterWordPause(sIdx, wIdx)
     }, d)
   }
 
@@ -768,15 +883,24 @@ function RhythmTimer({ exercise, onComplete }) {
 
     // Koniec przebiegu przez wszystkie słowa zdania (tylko fallback bez boundary trafia tutaj dla pass 1)
     if (passRef.current === 'with_narrator') {
-      passRef.current = 'silent'
-      setPass('silent')
-      placeDotInstant(0)
-      goToWord(sIdx, 0)
+      const nar = narrRef.current
+      if (nar && nar.sIdx === sIdx && !nar.done) {
+        // podświetlanie skończyło się przed lektorem — poczekaj, aż dokończy zdanie
+        bump()
+        nar.waiting = true
+        narrWaitTimerRef.current = setTimeout(() => {
+          if (narrRef.current !== nar || nar.done) return
+          nar.done = true
+          startSilentPass(sIdx)
+        }, 15000)
+      } else {
+        startSilentPass(sIdx)
+      }
     } else {
       // Koniec przebiegu cichego DANEGO zdania = koniec jednego "rzutu" w grze kręgli.
       // Dwa zdania = jedna runda (dwa rzuty), tak jak w prawdziwych kręglach.
       bump()
-      const res = mic.getResult()
+      const res = mic.getResult(words.length)
       mic.resetCounters()
       const nextS = sIdx + 1
       const isLast = nextS >= sentenceList.length
@@ -808,6 +932,8 @@ function RhythmTimer({ exercise, onComplete }) {
       bump()
       setRunning(false)
       clearTimeout(timeoutRef.current)
+      clearTimeout(narrWaitTimerRef.current)
+      narrRef.current = null
       cancelAnimationFrame(dotAnimRef.current)
       try { window.speechSynthesis?.cancel() } catch (e) {}
       const elapsedInPhase = performance.now() - phaseStartedAtRef.current
@@ -823,8 +949,8 @@ function RhythmTimer({ exercise, onComplete }) {
       throwHistoryRef.current = []
       ensureMicStarted()
       enterSentence(0)
-    } else if (phaseRef.current === 'reading' && pass === 'with_narrator' && boundarySupportedRef.current !== false) {
-      // Wznowienie w trakcie przebiegu z lektorem (zsynchronizowanego) — po prostu przeczytaj zdanie od nowa
+    } else if (pass === 'with_narrator') {
+      // Wznowienie w trakcie przebiegu z lektorem — po prostu przeczytaj zdanie od nowa
       enterSentence(sentenceIdxRef.current)
     } else if (phaseRef.current === 'reading') {
       goToWord(sentenceIdxRef.current, idxRef.current)

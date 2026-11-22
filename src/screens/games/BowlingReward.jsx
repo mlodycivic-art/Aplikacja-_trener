@@ -4,13 +4,10 @@ import { addResult } from '../../data/resultsStore'
 
 // Mapowanie % dopasowania rytmu → liczba przewróconych kręgli.
 export function pinsForPct(pct) {
-  if (pct >= 90) return 10
-  if (pct >= 80) return 8
-  if (pct >= 70) return 6
-  if (pct >= 60) return 4
-  if (pct >= 50) return 2
-  if (pct >= 5)  return 1
-  return 0
+  // proporcjonalnie: 100% = 10 kręgli, 67% = 7, 33% = 3; cokolwiek powiedziane = co najmniej 1
+  if (pct >= 95) return 10
+  if (pct < 5) return 0
+  return Math.max(1, Math.min(9, Math.round(pct / 10)))
 }
 
 // Trójkąt kręgli — szeroki rząd (4) daleko od kuli (u góry), pojedynczy (czubek) blisko kuli.
@@ -57,7 +54,8 @@ function Pin({ x, y, fallen, order }) {
 }
 
 // history: wyniki wcześniejszych rzutów w tej sesji (w % rytmu) — do tabliczki wyników
-export default function BowlingReward({ pct, onDone, history = [] }) {
+// missText / scoreLabel: inne ćwiczenia (np. SZ Lip Shape) podają własne napisy
+export default function BowlingReward({ pct, onDone, history = [], missText, scoreLabel }) {
   const [phase, setPhase] = useState('ready') // ready | rolling | impact | result
   const [missSide] = useState(() => (Math.random() < 0.5 ? 'left' : 'right'))
   const loggedRef = useRef(false)
@@ -153,13 +151,13 @@ export default function BowlingReward({ pct, onDone, history = [] }) {
         {phase === 'result' && (
           <div style={{ animation: 'stcPop .35s ease-out' }}>
             {isMiss ? (
-              <p style={{ fontWeight: 800, fontSize: 18, color: 'var(--muted)' }}>Kula w rynnie. Następne zdanie wolniej i równo.</p>
+              <p style={{ fontWeight: 800, fontSize: 18, color: 'var(--muted)' }}>{missText || 'Kula w rynnie. Następne zdanie wolniej i równo.'}</p>
             ) : isStrike ? (
               <p style={{ fontWeight: 800, fontSize: 26, color: 'var(--primary)', letterSpacing: 1 }}>STRIKE!</p>
             ) : (
               <p style={{ fontWeight: 800, fontSize: 20 }}>{pins} / 10 kręgli</p>
             )}
-            <p style={{ fontSize: 13, color: 'var(--muted)', marginTop: 2 }}>Dopasowanie rytmu: {Math.round(pct)}%</p>
+            <p style={{ fontSize: 13, color: 'var(--muted)', marginTop: 2 }}>{scoreLabel || 'Dopasowanie rytmu'}: {Math.round(pct)}%</p>
           </div>
         )}
       </div>

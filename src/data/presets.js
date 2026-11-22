@@ -10,13 +10,14 @@
 //                   nagrane wzorce — to dane osoby albo rzeczy przypisane do urządzenia,
 //                   a plik leży razem z kodem (w publicznym repozytorium widzi go każdy).
 
-import { DEFAULT_USER } from './defaultData'
+import { DEFAULT_USER, todayKey } from './defaultData'
 
 const APP_ID = 'speech-training-coach'
 const SETTING_KEYS = ['stc_exercises', 'stc_words', 'stc_theme', 'stc_setup_mode', 'stc_tongue_check_on', 'stc_program']
 const USER_FIELDS = ['name', 'age', 'type', 'goal']
 const APPLIED_KEY = 'stc_preset_applied'     // data pliku, z którego to urządzenie ostatnio brało ustawienia
 const CHECKED_KEY = 'stc_preset_checked'     // pierwsze uruchomienie już sprawdziło, czy plik istnieje
+export const CARRY_KEY = 'stc_carry_statuses'    // statusy dzisiejszych ćwiczeń sprzed wczytania ustawień
 const PRESET_URL = `${import.meta.env.BASE_URL}preset.json`
 export const PRESET_FILE = 'preset.json'
 
@@ -79,6 +80,13 @@ export function applyPreset(preset) {
   for (const f of USER_FIELDS) if (preset.profile && preset.profile[f] != null) user[f] = preset.profile[f]
   set('stc_user', JSON.stringify(user))
   try {
+    // dzisiejsze statusy (zrobione / pominięte) przechodzą do nowego planu — App dopisze je po starcie
+    const todayPlan = get(`stc_plan_${todayKey()}`)
+    if (todayPlan) {
+      const carry = {}
+      for (const e of JSON.parse(todayPlan) || []) if (e && e.id && e.status && e.status !== 'planned') carry[e.id] = e.status
+      set(CARRY_KEY, JSON.stringify(carry))
+    }
     const drop = []
     for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (k && k.startsWith('stc_plan_')) drop.push(k) }
     drop.forEach(k => localStorage.removeItem(k))
@@ -97,10 +105,19 @@ function isFreshDevice() {
   return !get(CHECKED_KEY) && !get('stc_exercises') && !get('stc_user') && !get('stc_results_v1')
 }
 
-// Wywoływane raz przed narysowaniem aplikacji. Na używanym urządzeniu kończy się od razu.
+// Wywoływane przy każdym uruchomieniu, przed narysowaniem aplikacji.
+//  • nowe urządzenie: bierze ustawienia z pliku preset.json,
+//  • używane urządzenie: jeśli na stronie jest NOWSZY plik niż ten, który urządzenie ostatnio wczytało,
+//    wczytuje go samo (zmiana zrobiona na iMacu → git push → telefon i tablet przy następnym otwarciu).
+//    Urządzenie, które nigdy nie brało ustawień z pliku, tylko zapamiętuje jego datę — nic nie nadpisujemy.
+// Bez sieci albo bez pliku aplikacja startuje normalnie (czekamy najwyżej 2,5 s).
 export async function bootstrapPreset() {
-  if (!isFreshDevice()) return false
+  const fresh = isFreshDevice()
   const preset = await fetchPreset(2500)
-  if (!preset) return false          // brak sieci albo pliku: spróbujemy przy następnym uruchomieniu
-  return applyPreset(preset)
+  if (!preset) return false
+  if (fresh) return applyPreset(preset)
+  const applied = get(APPLIED_KEY)
+  if (!applied) { set(APPLIED_KEY, preset.savedAt || ''); return false }
+  if (preset.savedAt && new Date(preset.savedAt) > new Date(applied)) return applyPreset(preset)
+  return false
 }
