@@ -11,7 +11,8 @@
 import { DEFAULT_SOUND_SETS } from './defaultData'
 
 export const PROGRAM_KEY = 'stc_program'
-export const DEFAULT_PROGRAM_STATE = { enabled: true, start: '2026-11-23', appliedWeek: null, backup: null }
+// early: dni przed startem, które już liczą się jako tydzień 1 (tu: niedziela 22.11 — pierwsza sesja wieczorem)
+export const DEFAULT_PROGRAM_STATE = { enabled: true, start: '2026-11-23', early: '2026-11-22', appliedWeek: null, backup: null }
 
 const WEEKDAY_TIMES = { sessions: ['15:30', '20:00'], froggy: '20:40' }
 const WEEKEND_TIMES = { sessions: ['10:00', '19:00'], froggy: '19:30' }
@@ -81,7 +82,8 @@ export function weekIndexFor(state, date = new Date()) {
   if (!start) return -1
   const day = new Date(date.getFullYear(), date.getMonth(), date.getDate())
   const diff = Math.round((day - start) / 86400000)
-  if (diff < 0) return -1
+  const early = parseIso(state?.early)
+  if (diff < 0) return early && day >= early ? 0 : -1
   return Math.min(PROGRAM_WEEKS.length, Math.floor(diff / 7))
 }
 

@@ -35,7 +35,7 @@ export default function ProgramCard({ exercises, setExercises, plan, setPlan }) 
     save({ ...state, enabled: false, appliedWeek: null, backup: null })
   }
   const turnOn = () => save({ ...state, enabled: true, appliedWeek: null })
-  const setStart = (iso) => { if (iso) save({ ...state, start: iso, appliedWeek: null }) }
+  const setStart = (iso) => { if (iso) save({ ...state, start: iso, early: null, appliedWeek: null }) }
 
   const idx = weekIndexFor(state)
   const end = programEnd(state)

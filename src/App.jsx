@@ -50,7 +50,7 @@ export default function App() {
   // Jednorazowe dopisanie nowych zestawów głoskowych do zapisanych ćwiczeń (bez nadpisywania treści trenera)
   useEffect(() => {
     // Wersja danych: migracja uruchamia się raz, żeby zestaw usunięty później przez trenera nie wracał
-    const DATA_VERSION = 9
+    const DATA_VERSION = 10
     let done = 0
     try { done = Number(localStorage.getItem('stc_data_version') || 0) } catch (e) {}
     let list = exercises
@@ -58,6 +58,11 @@ export default function App() {
       list = migrateExercises(exercises)
       // v9: plan 4‑tygodniowy domyślnie włączony (start 23.11.2026), chyba że już jest ustawiony
       if (done < 9 && !readProgram()) writeProgram(DEFAULT_PROGRAM_STATE)
+      // v10: plan rusza już w niedzielę 22.11 (wieczorna sesja), jeśli start nie był zmieniany
+      const prog = readProgram()
+      if (done < 10 && prog && prog.start === DEFAULT_PROGRAM_STATE.start && !prog.early) {
+        writeProgram({ ...prog, early: DEFAULT_PROGRAM_STATE.early })
+      }
       try { localStorage.setItem('stc_data_version', String(DATA_VERSION)) } catch (e) {}
     }
     // Plan 4‑tygodniowy: nowy tydzień → nowe godziny i zestawy, a dzisiejszy plan budujemy od nowa
