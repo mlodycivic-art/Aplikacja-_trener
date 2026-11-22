@@ -10,7 +10,7 @@ const arrowBtn = { padding: '2px 8px', minHeight: 0, fontSize: 14, lineHeight: 1
 function Preview({ id }) {
   const st = stationById[id]
   const pose = usePoseLoop(st.keys, st.cycleMs, true, null)
-  return <div style={{ maxWidth: 360, margin: '6px 0 10px' }}><FacePair pose={pose} /></div>
+  return <div style={{ maxWidth: 360, margin: '6px 0 10px' }}><FacePair pose={pose} hold={!!st.tongueHold} /></div>
 }
 
 export default function GymSettings({ value, onChange }) {

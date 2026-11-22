@@ -53,7 +53,7 @@ export default function GymSeries({ exercise, onComplete }) {
       if (my !== token.current) return
       await sleep(250)
       if (my !== token.current) return
-      await speak(s.hint, { rate: SLOW })
+      await speak(s.tongueHold ? `${s.hint} Język przez cały czas trzymaj u góry.` : s.hint, { rate: SLOW })
     } else {
       await sleep(3500)
     }
@@ -101,7 +101,7 @@ export default function GymSeries({ exercise, onComplete }) {
     let lastStage = null
     return (
       <div className="card" data-gym="intro">
-        <FacePair pose={pose} />
+        <FacePair pose={pose} hold={!!st?.tongueHold} />
         <div style={{ margin: '14px 0 10px', fontSize: 14, lineHeight: 1.6 }}>
           {run.map((s, i) => {
             const head = s.stage !== lastStage; lastStage = s.stage
@@ -146,7 +146,7 @@ export default function GymSeries({ exercise, onComplete }) {
       <div style={{ fontSize: 22, fontWeight: 800, marginBottom: 2 }} data-station={next.id}>{next.name}</div>
       <p style={{ fontSize: 14, lineHeight: 1.5, marginBottom: 10, minHeight: 42, color: phase === 'prep' ? 'var(--text)' : 'var(--muted)', fontWeight: phase === 'prep' ? 600 : 400 }}>{next.hint}</p>
       <div style={{ position: 'relative' }}>
-        <FacePair pose={phase === 'prep' ? prepPose : pose} />
+        <FacePair pose={phase === 'prep' ? prepPose : pose} hold={!!next.tongueHold} />
         {phase === 'prep' && count != null && (
           <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
             <div key={count} data-countdown={count} style={{ width: 110, height: 110, borderRadius: 55, background: 'var(--primary)', color: '#fff', border: '5px solid #1A1410',

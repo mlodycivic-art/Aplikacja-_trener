@@ -257,7 +257,8 @@ const S = {
 }
 const SP = Object.fromEntries(Object.entries(S).map(([k, v]) => [k, parse(v)]))
 
-export function FaceSide({ pose: p }) {
+// hold: ćwiczenie, w którym język się nie rusza — język leży u góry i jego kolor pulsuje jako przypomnienie
+export function FaceSide({ pose: p, hold = false }) {
   const id = useId().replace(/:/g, '')
   const jaw = clamp(p.jaw), gap = clamp(p.lipGap), sm = clamp(p.smile), pk = clamp(p.pucker)
   // Żuchwa: rysunek bazowy jest otwarty; zamknięcie podnosi punkty z przodu bardziej niż z tyłu i u dołu brody mniej
@@ -269,7 +270,7 @@ export function FaceSide({ pose: p }) {
 
   const u = clamp(p.tongueUp), tip = clamp(p.tip), r = clamp((p.tipY + 1) / 2)
   // przy zamkniętej buzi język leży przy podniebieniu (pozycja spoczynkowa); przy otwartej opada, chyba że ćwiczenie go unosi
-  const us = Math.max(u, tip * (1 - r) * 0.9, (1 - jaw) * 0.85)
+  const us = Math.max(u, tip * (1 - r) * 0.9, (1 - jaw) * 0.85, hold ? 0.85 : 0)
   const tShift = -Math.abs(clamp(p.tipX, -1, 1)) * 12 * tip
   const tongue = build(mix(SP.tongueLow, SP.tongueUp, us), (x, y) => { const [a, b] = jd(x, y); return [a + tShift * clamp((x - 120) / 60), b] })
   const ch = clamp(p.cheek), ht = clamp(p.heart), br = clamp(p.breath)
@@ -285,7 +286,9 @@ export function FaceSide({ pose: p }) {
         <path d="M192 0 C198 32 214 60 244 82 C230 78 212 64 202 46 Z" fill={LIGHT} />
         <path d={S.cavity} fill={DARK} />
         <path d={S.uvula} transform={`translate(0 ${f1(-clamp(p.palateUp) * 6)})`} fill={GUM} stroke={OUT} strokeWidth="2.5" strokeLinejoin="round" />
-        <path d={tongue} fill={TONGUE} stroke={OUT} strokeWidth="4" strokeLinejoin="round" />
+        <path d={tongue} fill={TONGUE} stroke={OUT} strokeWidth="4" strokeLinejoin="round">
+          {hold && <animate attributeName="fill" values={`${TONGUE};#FF2E63;#FF8FB0;${TONGUE}`} keyTimes="0;0.4;0.7;1" dur="1.8s" repeatCount="indefinite" />}
+        </path>
         {p.tongueCup > 0.01 && <path d={build(parse('M108 172 C120 154 140 144 162 142'), jd)} fill="none" stroke="#FF9AB0" strokeWidth="5" strokeLinecap="round" opacity={f1(clamp(p.tongueCup) * u)} />}
         <path d={S.palate} fill="none" stroke={OUT} strokeWidth="4" strokeLinejoin="round" strokeLinecap="round" />
 
@@ -319,17 +322,24 @@ export function FaceSide({ pose: p }) {
           <circle key={i} cx={f1(244 + br * 30 + i * 8)} cy={f1(mouthY - i * 8)} r={f1(5 + br * 10)} fill="#FFFFFF" stroke="#9FB8D8" strokeWidth="3" opacity={f1((1 - br) * 0.85)} />
         ))}
       </g>
+      {hold && (<g data-hold-badge>
+        <rect x="12" y="308" width="152" height="36" rx="18" fill="#FFFFFF" stroke={OUT} strokeWidth="3.5" />
+        <circle cx="32" cy="326" r="8" fill={TONGUE}>
+          <animate attributeName="fill" values={`${TONGUE};#FF2E63;#FF8FB0;${TONGUE}`} keyTimes="0;0.4;0.7;1" dur="1.8s" repeatCount="indefinite" />
+        </circle>
+        <text x="46" y="332" fontSize="16" fontWeight="800" fill={OUT} fontFamily="inherit">Język u góry</text>
+      </g>)}
       <rect x="2" y="2" width="276" height="356" rx="12" fill="none" stroke={OUT} strokeWidth="5" />
     </svg>
   )
 }
 
 // Oba widoki obok siebie, z podpisami
-export function FacePair({ pose }) {
+export function FacePair({ pose, hold = false }) {
   return (
     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
       <div><FaceFront pose={pose} /><div className="text-muted" style={{ fontSize: 12, textAlign: 'center', marginTop: 4 }}>Z przodu</div></div>
-      <div><FaceSide pose={pose} /><div className="text-muted" style={{ fontSize: 12, textAlign: 'center', marginTop: 4 }}>Z boku, w przekroju</div></div>
+      <div><FaceSide pose={pose} hold={hold} /><div className="text-muted" style={{ fontSize: 12, textAlign: 'center', marginTop: 4 }}>Z boku, w przekroju</div></div>
     </div>
   )
 }

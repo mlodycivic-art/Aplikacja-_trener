@@ -2,6 +2,7 @@
 // Źródło ćwiczeń: zestaw szkolnego logopedy (SP Mogielnica, 2024) + koszyczek (miseczkowanie).
 // Pominięte: jedzenie paluszków i opłatka. Liczby powtórzeń i tempa to propozycja do uzgodnienia z logopedką.
 //
+// tongueHold: ćwiczenie warg, w którym język ma przez cały czas leżeć u góry (w widoku z boku pulsuje jako przypomnienie).
 // Każde ćwiczenie to klatki kluczowe dla animowanej twarzy (screens/gym/FaceRig.jsx): t = 0…1 w jednym powtórzeniu.
 // Zapis w ćwiczeniu: params.gym = { stageOrder: [...], stations: [{ id, enabled, reps, tempo }], voice }
 
@@ -37,22 +38,22 @@ function countTeethKeys() {
 
 export const STATIONS = [
   // ── Wargi ──
-  { id: 'smile_teeth', stage: 'lips', name: 'Uśmiech z zębami', reps: 5, cycleMs: 3000,
+  { id: 'smile_teeth', stage: 'lips', tongueHold: true, name: 'Uśmiech z zębami', reps: 5, cycleMs: 3000,
     hint: 'Uśmiechnij się szeroko, tak żeby było widać wszystkie zęby. Zęby zostają złączone. Przytrzymaj i rozluźnij.',
     keys: [{ t: 0 }, { t: 0.25, smile: 1, lipGap: 0.9 }, { t: 0.7, smile: 1, lipGap: 0.9 }, { t: 1 }] },
-  { id: 'smile_closed', stage: 'lips', name: 'Uśmiech z zamkniętymi ustami', reps: 5, cycleMs: 3000,
+  { id: 'smile_closed', stage: 'lips', tongueHold: true, name: 'Uśmiech z zamkniętymi ustami', reps: 5, cycleMs: 3000,
     hint: 'Uśmiechnij się szeroko, ale usta zostają zamknięte. Przytrzymaj i rozluźnij.',
     keys: [{ t: 0 }, { t: 0.25, smile: 1 }, { t: 0.7, smile: 1 }, { t: 1 }] },
-  { id: 'pucker_smile', stage: 'lips', name: 'Dzióbek i uśmiech', reps: 6, cycleMs: 3600,
+  { id: 'pucker_smile', stage: 'lips', tongueHold: true, name: 'Dzióbek i uśmiech', reps: 6, cycleMs: 3600,
     hint: 'Na zmianę: usta w dzióbek, potem szeroki uśmiech z widocznymi zębami. Spokojnie, dokładnie.',
     keys: [{ t: 0 }, { t: 0.18, pucker: 1 }, { t: 0.42, pucker: 1 }, { t: 0.58, smile: 1, lipGap: 0.9 }, { t: 0.84, smile: 1, lipGap: 0.9 }, { t: 1 }] },
-  { id: 'kiss', stage: 'lips', name: 'Całuski', reps: 5, cycleMs: 2600,
+  { id: 'kiss', stage: 'lips', tongueHold: true, name: 'Całuski', reps: 5, cycleMs: 2600,
     hint: 'Ściągnij usta mocno do przodu i wyślij całusa.',
     keys: [{ t: 0 }, { t: 0.3, pucker: 1 }, { t: 0.5, pucker: 1, heart: 0 }, { t: 0.62, pucker: 0.3, heart: 0.3 }, { t: 0.95, heart: 1 }, { t: 1 }] },
-  { id: 'cheeks', stage: 'lips', name: 'Nadymanie policzków', reps: 5, cycleMs: 3200,
+  { id: 'cheeks', stage: 'lips', tongueHold: true, name: 'Nadymanie policzków', reps: 5, cycleMs: 3200,
     hint: 'Usta zamknięte, nadmuchaj oba policzki i oddychaj nosem. Przytrzymaj i wypuść powietrze.',
     keys: [{ t: 0 }, { t: 0.3, cheek: 1 }, { t: 0.75, cheek: 1 }, { t: 1 }] },
-  { id: 'straw', stage: 'lips', name: 'Wąsy z rurki', reps: 3, cycleMs: 6000,
+  { id: 'straw', stage: 'lips', tongueHold: true, name: 'Wąsy z rurki', reps: 3, cycleMs: 6000,
     hint: 'Połóż rurkę (słomkę albo ołówek) na górnej wardze pod nosem. Zrób dzióbek i trzymaj rurkę jak najdłużej, bez rąk.',
     keys: [{ t: 0, straw: 1 }, { t: 0.2, straw: 1, pucker: 1 }, { t: 0.85, straw: 1, pucker: 1 }, { t: 1, straw: 1 }] },
   // ── Język ──
