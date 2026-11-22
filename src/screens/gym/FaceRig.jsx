@@ -91,8 +91,16 @@ const heartPath = (x, y, k) => `M${f1(x)} ${f1(y + 6 * k)} C${f1(x - 14 * k)} ${
 
 // ── WIDOK Z PRZODU ───────────────────────────────────────────────────────────
 const CX = 140, CY = 212
-const UPPER_TEETH = [[-68, 21, 8], [-46, 22, 2], [-23, 23, 0], [0, 23, 0], [23, 22, 2], [45, 21, 8]]
-const LOWER_TEETH = [[-58, 20, 7], [-37, 19, 2], [-18, 19, 0], [1, 19, 0], [20, 19, 2], [39, 20, 7]]
+// po 8 zębów: [x od środka, szerokość, uniesienie łuku na bokach]
+function teethRow(widths, arch) {
+  const total = widths.reduce((a, b) => a + b, 0)
+  let x = -total / 2
+  return widths.map((wd, i) => { const r = [x, wd, arch[i]]; x += wd; return r })
+}
+const UPPER_TEETH = teethRow([16, 18, 20, 23, 23, 20, 18, 16], [12, 6, 2, 0, 0, 2, 6, 12])
+const LOWER_TEETH = teethRow([15, 16, 18, 19, 19, 18, 16, 15], [10, 5, 1, 0, 0, 1, 5, 10])
+// środki zębów jako tipX (-1…1) — do ćwiczenia „Liczenie zębów”
+export const TOOTH_X = UPPER_TEETH.map(([x, wd]) => Math.round(((x + wd / 2) / 66) * 100) / 100)
 
 // Kontur ust: rogi ostre przy uśmiechu, zaokrąglone przy dzióbku (pk)
 function halfTop(w, top, yc, k, pk, fromLeft) {
@@ -100,6 +108,15 @@ function halfTop(w, top, yc, k, pk, fromLeft) {
   return fromLeft
     ? `C${f1(CX - w * kk)} ${f1(ty)} ${f1(CX - w * 0.4)} ${f1(top)} ${CX} ${f1(top)} C${f1(CX + w * 0.4)} ${f1(top)} ${f1(CX + w * kk)} ${f1(ty)} ${f1(CX + w)} ${f1(yc)}`
     : `C${f1(CX + w * kk)} ${f1(ty)} ${f1(CX + w * 0.4)} ${f1(top)} ${CX} ${f1(top)} C${f1(CX - w * 0.4)} ${f1(top)} ${f1(CX - w * kk)} ${f1(ty)} ${f1(CX - w)} ${f1(yc)}`
+}
+// górny kontur wargi z „łukiem Kupidyna” (dołek pośrodku), słabszym przy dzióbku
+function bowTop(w, top, yc, k, pk) {
+  const kk = lerp(k, 1, pk), ty = lerp(top, yc + (top - yc) * 0.55, pk)
+  const dip = 5 * (1 - pk), px = 18
+  return `C${f1(CX - w * kk)} ${f1(ty)} ${f1(CX - w * 0.5)} ${f1(top)} ${f1(CX - px)} ${f1(top)} `
+    + `C${f1(CX - 8)} ${f1(top)} ${f1(CX - 4)} ${f1(top + dip)} ${CX} ${f1(top + dip)} `
+    + `C${f1(CX + 4)} ${f1(top + dip)} ${f1(CX + 8)} ${f1(top)} ${f1(CX + px)} ${f1(top)} `
+    + `C${f1(CX + w * 0.5)} ${f1(top)} ${f1(CX + w * kk)} ${f1(ty)} ${f1(CX + w)} ${f1(yc)}`
 }
 function mouthShape(w, top, bot, yc, k, pk) {
   return `M${f1(CX - w)} ${f1(yc)} ${halfTop(w, top, yc, k, pk, true)} ${halfTop(w, bot, yc, k, pk, false)} Z`
@@ -110,16 +127,18 @@ export function FaceFront({ pose: p }) {
   const jaw = clamp(p.jaw), gap = clamp(p.lipGap), sm = clamp(p.smile), pk = clamp(p.pucker)
   const w = 66 + sm * 22 - pk * 30 + jaw * 10
   const yc = CY - sm * 12 + jaw * 12
-  const inTop = CY - (1.5 + gap * 12 + jaw * 32) * (1 - pk * 0.4) - pk * 5
-  const inBot = CY + (1.5 + gap * 12 + jaw * 58) * (1 - pk * 0.3) + pk * 5
-  const tU = 15 + pk * 9 - sm * 5, tL = 17 + pk * 9 - sm * 5
+  // w uśmiechu z rozchylonymi wargami górna warga podnosi się, odsłaniając całe górne zęby
+  const inTop = CY - (1.5 + gap * 12 + gap * sm * 16 + jaw * 32) * (1 - pk * 0.4) - pk * 5
+  const inBot = CY + (1.5 + gap * 12 + gap * sm * 10 + jaw * 58) * (1 - pk * 0.3) + pk * 5
+  const tU = 15 + pk * 9 - sm * 5, tL = 18 + pk * 9 - sm * 3
   const ow = w + 14 - pk * 2, oTop = inTop - tU, oBot = inBot + tL
   const k = 0.85 - pk * 0.35
   const inner = mouthShape(w, inTop, inBot, yc, k, pk)
-  const outer = mouthShape(ow, oTop, oBot, yc, k, pk)
-  const upperLip = `M${f1(CX - ow)} ${f1(yc)} ${halfTop(ow, oTop, yc, k, pk, true)} L${f1(CX + w)} ${f1(yc)} ${halfTop(w, inTop, yc, k, pk, false)} Z`
+  const outer = `M${f1(CX - ow)} ${f1(yc)} ${bowTop(ow, oTop, yc, k, pk)} ${halfTop(ow, oBot, yc, k, pk, false)} Z`
+  const upperLip = `M${f1(CX - ow)} ${f1(yc)} ${bowTop(ow, oTop, yc, k, pk)} L${f1(CX + w)} ${f1(yc)} ${halfTop(w, inTop, yc, k, pk, false)} Z`
 
-  const lowTop = CY + 3 + jaw * 56
+  // przy zamkniętej żuchwie górne zęby lekko zachodzą na dolne (jak w zgryzie)
+  const lowTop = CY - 1 + jaw * 58
   const u = clamp(p.tongueUp), cup = clamp(p.tongueCup), tip = clamp(p.tip)
   const Lx = CX - lerp(64, 66, u), Ly = lerp(lowTop + 12, CY - 4, u)
   const ay = lerp(lowTop - 28, CY - 36, u)
@@ -127,7 +146,9 @@ export function FaceFront({ pose: p }) {
   const tongue = `M${f1(Lx)} ${f1(Ly)} Q${CX} ${f1(ay)} ${f1(2 * CX - Lx)} ${f1(Ly)} Q${f1(CX + b1x)} ${f1(b1y)} ${CX} ${f1(by)} Q${f1(CX - b1x)} ${f1(b1y)} ${f1(Lx)} ${f1(Ly)} Z`
   const under = `M${CX - 54} ${f1(Ly + 10)} Q${CX} ${CY - 14} ${CX + 54} ${f1(Ly + 10)} Q${CX + 48} ${f1(lowTop + 2)} ${CX} ${f1(lowTop + 6)} Q${CX - 48} ${f1(lowTop + 2)} ${CX - 54} ${f1(Ly + 10)} Z`
   const r = clamp((p.tipY + 1) / 2)
-  const Tx = CX + clamp(p.tipX, -1, 1) * 56, Ty = lerp(CY - 8, lowTop - 14, r)
+  const tx = clamp(p.tipX, -1, 1), Tx = CX + tx * lerp(64, 50, r)   // dolne skrajne zęby chowają się za kącikami ust
+  // czubek: górne zęby (od środka ust, tuż pod brzegiem), środek ust, dolne zęby (tuż nad brzegiem)
+  const Ty = lerp(CY - 2 - 12 * tx * tx, lowTop - 10 + 8 * tx * tx, r)
   const baseY = lowTop + 30, mid = (Ty + baseY) / 2
   const tipShape = `M${CX - 34} ${f1(baseY)} C${CX - 30} ${f1(mid)} ${f1(Tx - 12)} ${f1(Ty + 16)} ${f1(Tx - 8)} ${f1(Ty + 4)} Q${f1(Tx)} ${f1(Ty - 9)} ${f1(Tx + 8)} ${f1(Ty + 4)} C${f1(Tx + 12)} ${f1(Ty + 16)} ${CX + 30} ${f1(mid)} ${CX + 34} ${f1(baseY)} Z`
   const uvY = CY - 22 + jaw * 6 - clamp(p.palateUp) * 10
@@ -177,11 +198,13 @@ export function FaceFront({ pose: p }) {
             </g>
           </g>
           {tip > 0.01 && <path d={tipShape} fill={TONGUE} stroke={OUT} strokeWidth="4" strokeLinejoin="round" opacity={f1(tip)} />}
-          <g fill="#FFFFFF" stroke={OUT} strokeWidth="3.5">
-            {UPPER_TEETH.map(([x, wd, a], i) => <rect key={`u${i}`} x={CX + x} y={f1(CY - 25 - a)} width={wd} height="22" rx="7" />)}
-            {LOWER_TEETH.map(([x, wd, a], i) => <rect key={`l${i}`} x={CX + x} y={f1(lowTop + a)} width={wd} height="20" rx="7" />)}
+          <g fill="#FFFFFF" stroke={OUT} strokeWidth="3">
+            {LOWER_TEETH.map(([x, wd, a], i) => <rect key={`l${i}`} x={f1(CX + x)} y={f1(lowTop + a)} width={wd} height="20" rx="6" />)}
+            {UPPER_TEETH.map(([x, wd, a], i) => <rect key={`u${i}`} x={f1(CX + x)} y={f1(CY - 26 - a)} width={wd} height="23" rx="6" />)}
           </g>
-          <path d={`M${CX - 17} ${CY - 20} V${CY - 12} M${CX + 6} ${CY - 20} V${CY - 12}`} stroke="#DCE3F0" strokeWidth="3" strokeLinecap="round" />
+          <g stroke="#DCE3F0" strokeWidth="2.5" strokeLinecap="round">
+            {UPPER_TEETH.map(([x, wd, a], i) => <path key={i} d={`M${f1(CX + x + wd * 0.35)} ${f1(CY - 20 - a)} V${f1(CY - 11 - a)}`} />)}
+          </g>
         </g>
 
         <path d={`${outer} ${inner}`} fillRule="evenodd" fill={LIP} stroke={OUT} strokeWidth="4.5" strokeLinejoin="round" />
@@ -287,8 +310,8 @@ export function FaceSide({ pose: p }) {
 
         {ch > 0.01 && <ellipse cx="162" cy="196" rx={f1(6 + ch * 34)} ry={f1(6 + ch * 40)} fill="#FFE7D6" stroke={OUT} strokeWidth="3" strokeDasharray="7 5" opacity={f1(clamp(ch * 1.4) * 0.75)} />}
         {p.straw > 0.01 && (<g opacity={f1(clamp(p.straw))}>
-          <circle cx={f1(238 + pk * 10)} cy="110" r="8" fill="#FFD23F" stroke={OUT} strokeWidth="3.5" />
-          <circle cx={f1(238 + pk * 10)} cy="110" r="3" fill="#7A4A10" />
+          <circle cx={f1(223 + pk * 6)} cy={f1(109 - pk * 3)} r="8" fill="#FFD23F" stroke={OUT} strokeWidth="3.5" />
+          <circle cx={f1(223 + pk * 6)} cy={f1(109 - pk * 3)} r="3" fill="#7A4A10" />
         </g>)}
         {(u > 0.6 || (tip > 0.5 && r < 0.5)) && <circle cx="174" cy="148" r="10" fill="none" stroke="#FFD23F" strokeWidth="4" opacity={f1(Math.max(clamp((u - 0.6) * 2.5), clamp((tip - 0.5) * 2) * (1 - r)))} />}
         {ht > 0.02 && ht < 0.98 && <path d={heartPath(240 + ht * 26, mouthY - ht * 110, 1.2 + ht)} fill="#E23A4E" stroke={OUT} strokeWidth="3" opacity={f1(Math.sin(Math.PI * ht))} />}

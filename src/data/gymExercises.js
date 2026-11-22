@@ -5,6 +5,8 @@
 // Każde ćwiczenie to klatki kluczowe dla animowanej twarzy (screens/gym/FaceRig.jsx): t = 0…1 w jednym powtórzeniu.
 // Zapis w ćwiczeniu: params.gym = { stageOrder: [...], stations: [{ id, enabled, reps, tempo }], voice }
 
+import { TOOTH_X } from '../screens/gym/FaceRig'
+
 export const STAGES = [
   { id: 'lips',   name: 'Ćwiczenia warg' },
   { id: 'tongue', name: 'Ćwiczenia języka' },
@@ -19,6 +21,20 @@ export const TEMPOS = {
 
 const OPEN = { jaw: 1, lipGap: 0.6 }
 
+// Liczenie zębów: z pozycji wyjściowej (buzia otwarta, czubek języka na środku) dotknięcie zęba i powrót na środek;
+// 8 zębów u góry od lewej do prawej, potem 8 na dole od prawej do lewej.
+function countTeethKeys() {
+  const rest = { ...OPEN, tip: 1, tipX: 0, tipY: 0 }
+  const touches = [...TOOTH_X.map(x => ({ tipX: x, tipY: -1 })), ...[...TOOTH_X].reverse().map(x => ({ tipX: x, tipY: 1 }))]
+  const seg = 1 / touches.length, keys = []
+  touches.forEach((tch, i) => {
+    const t0 = i * seg
+    keys.push({ t: t0, ...rest }, { t: t0 + seg * 0.35, ...rest, ...tch }, { t: t0 + seg * 0.55, ...rest, ...tch }, { t: t0 + seg * 0.9, ...rest })
+  })
+  keys.push({ t: 1, ...rest })
+  return keys
+}
+
 export const STATIONS = [
   // ── Wargi ──
   { id: 'smile_teeth', stage: 'lips', name: 'Uśmiech z zębami', reps: 5, cycleMs: 3000,
@@ -28,8 +44,8 @@ export const STATIONS = [
     hint: 'Uśmiechnij się szeroko, ale usta zostają zamknięte. Przytrzymaj i rozluźnij.',
     keys: [{ t: 0 }, { t: 0.25, smile: 1 }, { t: 0.7, smile: 1 }, { t: 1 }] },
   { id: 'pucker_smile', stage: 'lips', name: 'Dzióbek i uśmiech', reps: 6, cycleMs: 3600,
-    hint: 'Na zmianę: usta w dzióbek, potem szeroki uśmiech. Spokojnie, dokładnie.',
-    keys: [{ t: 0 }, { t: 0.18, pucker: 1 }, { t: 0.42, pucker: 1 }, { t: 0.58, smile: 1 }, { t: 0.84, smile: 1 }, { t: 1 }] },
+    hint: 'Na zmianę: usta w dzióbek, potem szeroki uśmiech z widocznymi zębami. Spokojnie, dokładnie.',
+    keys: [{ t: 0 }, { t: 0.18, pucker: 1 }, { t: 0.42, pucker: 1 }, { t: 0.58, smile: 1, lipGap: 0.9 }, { t: 0.84, smile: 1, lipGap: 0.9 }, { t: 1 }] },
   { id: 'kiss', stage: 'lips', name: 'Całuski', reps: 5, cycleMs: 2600,
     hint: 'Ściągnij usta mocno do przodu i wyślij całusa.',
     keys: [{ t: 0 }, { t: 0.3, pucker: 1 }, { t: 0.5, pucker: 1, heart: 0 }, { t: 0.62, pucker: 0.3, heart: 0.3 }, { t: 0.95, heart: 1 }, { t: 1 }] },
@@ -43,12 +59,9 @@ export const STATIONS = [
   { id: 'lift', stage: 'tongue', name: 'Winda', reps: 6, cycleMs: 3000,
     hint: 'Otwórz szeroko buzię. Szeroki język unieś za górne zęby, przytrzymaj i opuść. Żuchwa się nie rusza.',
     keys: [{ t: 0, ...OPEN }, { t: 0.15, ...OPEN }, { t: 0.45, ...OPEN, tongueUp: 1 }, { t: 0.8, ...OPEN, tongueUp: 1 }, { t: 1, ...OPEN }] },
-  { id: 'count_teeth', stage: 'tongue', name: 'Liczenie zębów', reps: 3, cycleMs: 7000,
-    hint: 'Buzia otwarta. Czubkiem języka dotknij po kolei każdego zęba: najpierw na górze, potem na dole.',
-    keys: [
-      { t: 0, ...OPEN }, { t: 0.06, ...OPEN, tip: 1, tipY: -1, tipX: -1 }, { t: 0.42, ...OPEN, tip: 1, tipY: -1, tipX: 1 },
-      { t: 0.54, ...OPEN, tip: 1, tipY: 1, tipX: 1 }, { t: 0.92, ...OPEN, tip: 1, tipY: 1, tipX: -1 }, { t: 1, ...OPEN },
-    ] },
+  { id: 'count_teeth', stage: 'tongue', name: 'Liczenie zębów', reps: 1, cycleMs: 22400,
+    hint: 'Buzia otwarta, czubek języka na środku. Dotknij czubkiem języka jednego zęba i wróć na środek. Tak po kolei: osiem zębów na górze i osiem na dole.',
+    keys: countTeethKeys() },
   { id: 'cup', stage: 'tongue', name: 'Koszyczek', reps: 5, cycleMs: 3600,
     hint: 'Buzia szeroko otwarta. Unieś szeroki język za górne zęby i zawiń jego brzegi do góry, żeby powstał koszyczek. Przytrzymaj.',
     keys: [{ t: 0, ...OPEN }, { t: 0.15, ...OPEN }, { t: 0.45, ...OPEN, tongueUp: 0.9, tongueCup: 1 }, { t: 0.82, ...OPEN, tongueUp: 0.9, tongueCup: 1 }, { t: 1, ...OPEN }] },

@@ -7,7 +7,7 @@ import AlarmBanner from './components/AlarmBanner'
 import NavBar, { ADULT_SCREEN_IDS } from './components/NavBar'
 import PinGate       from './components/PinGate'
 import Icon          from './components/Icon'
-import TongueCheck   from './components/TongueCheck'
+import TongueCheck, { TongueGate, isTongueCheckEnabled } from './components/TongueCheck'
 import { TONGUE_CHECK_POINTS } from './data/points'
 import ProfileScreen  from './screens/ProfileScreen'
 import TodayScreen    from './screens/TodayScreen'
@@ -38,6 +38,13 @@ export default function App() {
   // Wyjście ze strefy od razu ją blokuje, żeby dziecko nie trafiło do ustawień.
   const [pinOpen, setPinOpen]     = useState(false)
   const inAdultZone = ADULT_SCREEN_IDS.includes(screen)
+  // „Gdzie jest język?” obowiązkowo przy każdym wejściu w plan dnia (ekran Dziś w strefie ćwiczącego)
+  const [gate, setGate] = useState(() => isTongueCheckEnabled())
+  const prevScreen = useRef(screen)
+  useEffect(() => {
+    if (screen === 'today' && prevScreen.current !== 'today' && isTongueCheckEnabled()) setGate(true)
+    prevScreen.current = screen
+  }, [screen])
 
   // Jednorazowe dopisanie nowych zestawów głoskowych do zapisanych ćwiczeń (bez nadpisywania treści trenera)
   useEffect(() => {
@@ -183,7 +190,11 @@ export default function App() {
       </main>
 
       {/* Losowe sprawdzenia pozycji języka — tylko w strefie ćwiczącego i poza ćwiczeniem */}
-      <TongueCheck active={!inAdultZone && screen !== 'exercise' && !alarm && !pinOpen}
+      {gate && screen === 'today' && !alarm && !pinOpen && (
+        <TongueGate onDone={() => setGate(false)}
+          onAnswer={() => setUser(prev => ({ ...prev, points: (prev.points || 0) + TONGUE_CHECK_POINTS }))} />
+      )}
+      <TongueCheck active={!inAdultZone && screen !== 'exercise' && !alarm && !pinOpen && !gate}
         onAnswer={() => setUser(prev => ({ ...prev, points: (prev.points || 0) + TONGUE_CHECK_POINTS }))} />
 
       {screen !== 'exercise' && (

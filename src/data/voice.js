@@ -26,7 +26,7 @@ export function speak(text, { voiceName, rate = 0.92, pitch = 1.0 } = {}) {
       const end = (ok) => { if (!done) { done = true; resolve(ok) } }
       u.onend = () => end(true)
       u.onerror = () => end(false)
-      setTimeout(() => end(false), 15000)   // bezpiecznik: niektóre przeglądarki nie zgłaszają końca
+      setTimeout(() => end(false), Math.max(15000, text.length * 140))   // bezpiecznik: niektóre przeglądarki nie zgłaszają końca
       synth.cancel()
       synth.speak(u)
     } catch (e) { resolve(false) }

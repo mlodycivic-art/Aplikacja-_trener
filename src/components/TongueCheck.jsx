@@ -82,3 +82,41 @@ export default function TongueCheck({ active, onAnswer }) {
     </div>
   )
 }
+
+// Obowiązkowe pytanie przy wejściu w plan dnia: zasłania ekran i nie ma „zamknij” — żeby przejść dalej,
+// trzeba wybrać jedną odpowiedź. Odpowiedź zapisuje się tak samo jak przy losowych sprawdzeniach
+// (z dopiskiem gate: true), a następne losowe pytanie przesuwa się w czasie, żeby nie pytać dwa razy z rzędu.
+export function TongueGate({ onDone, onAnswer }) {
+  const [answer, setAnswer] = useState(null)
+  const choose = (position) => {
+    if (answer) return
+    addResult('tongue_check', { position, gate: true })
+    if (onAnswer) onAnswer(position)
+    scheduleNext()
+    setAnswer(position)
+    setTimeout(onDone, position === 'up' ? 1200 : 2800)
+  }
+  const btn = { flex: 1, minHeight: 64, fontSize: 17, fontWeight: 800 }
+  return (
+    <div role="dialog" aria-modal="true" aria-label="Gdzie jest język" data-tongue-gate style={{
+      position: 'fixed', inset: 0, zIndex: 200, background: 'rgba(15, 18, 32, 0.82)',
+      display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16,
+    }}>
+      <div style={{ width: '100%', maxWidth: 'calc(var(--app-width) - 32px)', background: 'var(--ink)', color: '#fff', borderRadius: 22, padding: 22 }}>
+        {answer == null ? (<>
+          <div style={{ fontWeight: 800, fontSize: 21, marginBottom: 6 }}>Gdzie jest teraz Twój język?</div>
+          <div style={{ fontSize: 14, color: '#CBD5E1', marginBottom: 16 }}>Nie ruszaj nim. Sprawdź i wybierz odpowiedź.</div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button className="btn" style={{ ...btn, background: 'var(--green)', color: '#fff' }} onClick={() => choose('up')} data-gate="up">U góry</button>
+            <button className="btn" style={{ ...btn, background: 'var(--yellow)', color: '#451A03' }} onClick={() => choose('mid')} data-gate="mid">Pośrodku</button>
+            <button className="btn" style={{ ...btn, background: 'var(--red)', color: '#fff' }} onClick={() => choose('down')} data-gate="down">Na dole</button>
+          </div>
+        </>) : answer === 'up' ? (
+          <div style={{ fontWeight: 800, fontSize: 19 }}>Dobrze. Tak trzymaj.</div>
+        ) : (
+          <div style={{ fontWeight: 800, fontSize: 19, lineHeight: 1.4 }}>Unieś język do podniebienia i zamknij usta. Dobrze, że to widzisz.</div>
+        )}
+      </div>
+    </div>
+  )
+}
