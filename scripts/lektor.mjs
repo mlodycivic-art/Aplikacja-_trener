@@ -58,8 +58,17 @@ const variants = (w) => {
   const cap = w[0].toUpperCase() + w.slice(1)
   return [`${w}.`, `${cap}.`, `${w}!`, cap, longV, longV && `${longV}.`].filter(Boolean)
 }
-const spelled = (w) => [...w].join(', ')
-const isSpelledOut = (w, text) => seconds(text) > 0.7 * seconds(spelled(w))
+// Wzorzec „przeliterowane”: litery oddzielone spacją (bez przecinków — te dodają długie pauzy i fałszują porównanie)
+const spelled = (w) => [...w].join(' ')
+const report = []
+const refCache = {}
+const ratio = (w, text) => {
+  const ref = refCache[w] ?? (refCache[w] = seconds(spelled(w)))
+  const sec = seconds(text)
+  report.push({ slowo: w, zapis: text, sek: +sec.toFixed(2), literowane_sek: +ref.toFixed(2), stosunek: +(sec / ref).toFixed(2) })
+  return sec / ref
+}
+const isSpelledOut = (w, text) => ratio(w, text) > 0.8
 
 const result = {}
 const failed = []
@@ -67,12 +76,16 @@ let checked = 0
 for (const w of [...words].sort()) {
   if (/\s/.test(w) || w.length > 9) continue      // literowane bywają tylko krótkie sylaby
   checked++
+  process.stdout.write(`\r  sprawdzam ${checked}: ${w}            `)
   if (!isSpelledOut(w, w)) continue
+  process.stdout.write('\r')
   const fix = variants(w).find(v => !isSpelledOut(w, v))
   if (fix) { result[w] = fix; console.log(`  „${w}” było literowane → lektor dostanie „${fix}”`) }
   else { failed.push(w); console.log(`  „${w}” jest literowane i nie znalazłem zapisu, który to naprawia`) }
 }
+process.stdout.write('\r                                        \r')
 fs.rmSync(tmp, { recursive: true, force: true })
+fs.writeFileSync(path.join(root, 'scripts', 'lektor-raport.json'), JSON.stringify(report, null, 1))
 fs.writeFileSync(outFile, JSON.stringify({ ...result, __nierozwiazane: failed.length ? failed : undefined }, null, 2) + '\n')
 console.log(`\nSprawdzone: ${checked} słów. Poprawione: ${Object.keys(result).length}. Bez rozwiązania: ${failed.length}.`)
 console.log('Wynik zapisany w src/data/spokenForms.json. Teraz: npm run wyslij')
