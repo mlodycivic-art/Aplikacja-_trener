@@ -1,0 +1,905 @@
+[
+ {
+  "slowo": "acz",
+  "zapis": "acz",
+  "sek": 0.43,
+  "literowane_sek": 0.66,
+  "stosunek": 0.65
+ },
+ {
+  "slowo": "asz",
+  "zapis": "asz",
+  "sek": 0.39,
+  "literowane_sek": 0.62,
+  "stosunek": 0.63
+ },
+ {
+  "slowo": "asza",
+  "zapis": "asza",
+  "sek": 0.51,
+  "literowane_sek": 0.51,
+  "stosunek": 1
+ },
+ {
+  "slowo": "asza",
+  "zapis": "asza.",
+  "sek": 0.51,
+  "literowane_sek": 0.51,
+  "stosunek": 1
+ },
+ {
+  "slowo": "asza",
+  "zapis": "Asza.",
+  "sek": 0.51,
+  "literowane_sek": 0.51,
+  "stosunek": 1
+ },
+ {
+  "slowo": "asza",
+  "zapis": "asza!",
+  "sek": 0.51,
+  "literowane_sek": 0.51,
+  "stosunek": 1
+ },
+ {
+  "slowo": "asza",
+  "zapis": "Asza",
+  "sek": 0.51,
+  "literowane_sek": 0.51,
+  "stosunek": 1
+ },
+ {
+  "slowo": "asza",
+  "zapis": "aasza",
+  "sek": 0.52,
+  "literowane_sek": 0.51,
+  "stosunek": 1.02
+ },
+ {
+  "slowo": "asza",
+  "zapis": "aasza.",
+  "sek": 0.52,
+  "literowane_sek": 0.51,
+  "stosunek": 1.02
+ },
+ {
+  "slowo": "aża",
+  "zapis": "aża",
+  "sek": 0.43,
+  "literowane_sek": 0.57,
+  "stosunek": 0.75
+ },
+ {
+  "slowo": "burza",
+  "zapis": "burza",
+  "sek": 0.53,
+  "literowane_sek": 0.74,
+  "stosunek": 0.72
+ },
+ {
+  "slowo": "cza",
+  "zapis": "cza",
+  "sek": 0.32,
+  "literowane_sek": 0.47,
+  "stosunek": 0.68
+ },
+ {
+  "slowo": "czapka",
+  "zapis": "czapka",
+  "sek": 0.64,
+  "literowane_sek": 0.93,
+  "stosunek": 0.69
+ },
+ {
+  "slowo": "cze",
+  "zapis": "cze",
+  "sek": 0.29,
+  "literowane_sek": 0.57,
+  "stosunek": 0.51
+ },
+ {
+  "slowo": "czeka",
+  "zapis": "czeka",
+  "sek": 0.56,
+  "literowane_sek": 0.79,
+  "stosunek": 0.71
+ },
+ {
+  "slowo": "czo",
+  "zapis": "czo",
+  "sek": 0.29,
+  "literowane_sek": 0.57,
+  "stosunek": 0.51
+ },
+ {
+  "slowo": "czoło",
+  "zapis": "czoło",
+  "sek": 0.46,
+  "literowane_sek": 0.88,
+  "stosunek": 0.52
+ },
+ {
+  "slowo": "czu",
+  "zapis": "czu",
+  "sek": 0.29,
+  "literowane_sek": 0.57,
+  "stosunek": 0.51
+ },
+ {
+  "slowo": "czubek",
+  "zapis": "czubek",
+  "sek": 0.63,
+  "literowane_sek": 0.97,
+  "stosunek": 0.65
+ },
+ {
+  "slowo": "czy",
+  "zapis": "czy",
+  "sek": 0.27,
+  "literowane_sek": 0.85,
+  "stosunek": 0.32
+ },
+ {
+  "slowo": "daszek",
+  "zapis": "daszek",
+  "sek": 0.73,
+  "literowane_sek": 0.94,
+  "stosunek": 0.78
+ },
+ {
+  "slowo": "deszcz",
+  "zapis": "deszcz",
+  "sek": 0.61,
+  "literowane_sek": 0.97,
+  "stosunek": 0.63
+ },
+ {
+  "slowo": "dża",
+  "zapis": "dża",
+  "sek": 0.35,
+  "literowane_sek": 0.63,
+  "stosunek": 0.56
+ },
+ {
+  "slowo": "dże",
+  "zapis": "dże",
+  "sek": 0.33,
+  "literowane_sek": 0.75,
+  "stosunek": 0.44
+ },
+ {
+  "slowo": "dżem",
+  "zapis": "dżem",
+  "sek": 0.6,
+  "literowane_sek": 0.91,
+  "stosunek": 0.66
+ },
+ {
+  "slowo": "dżo",
+  "zapis": "dżo",
+  "sek": 0.33,
+  "literowane_sek": 0.75,
+  "stosunek": 0.44
+ },
+ {
+  "slowo": "dżokej",
+  "zapis": "dżokej",
+  "sek": 0.65,
+  "literowane_sek": 1.24,
+  "stosunek": 0.52
+ },
+ {
+  "slowo": "dżu",
+  "zapis": "dżu",
+  "sek": 0.33,
+  "literowane_sek": 0.75,
+  "stosunek": 0.44
+ },
+ {
+  "slowo": "dżudo",
+  "zapis": "dżudo",
+  "sek": 0.54,
+  "literowane_sek": 0.97,
+  "stosunek": 0.56
+ },
+ {
+  "slowo": "dżungla",
+  "zapis": "dżungla",
+  "sek": 0.71,
+  "literowane_sek": 1.25,
+  "stosunek": 0.57
+ },
+ {
+  "slowo": "esz",
+  "zapis": "esz",
+  "sek": 0.4,
+  "literowane_sek": 0.62,
+  "stosunek": 0.65
+ },
+ {
+  "slowo": "groszek",
+  "zapis": "groszek",
+  "sek": 0.79,
+  "literowane_sek": 1.11,
+  "stosunek": 0.71
+ },
+ {
+  "slowo": "kalosze",
+  "zapis": "kalosze",
+  "sek": 0.66,
+  "literowane_sek": 1.04,
+  "stosunek": 0.63
+ },
+ {
+  "slowo": "kasza",
+  "zapis": "kasza",
+  "sek": 0.53,
+  "literowane_sek": 0.65,
+  "stosunek": 0.82
+ },
+ {
+  "slowo": "kasza",
+  "zapis": "kasza.",
+  "sek": 0.53,
+  "literowane_sek": 0.65,
+  "stosunek": 0.82
+ },
+ {
+  "slowo": "kasza",
+  "zapis": "Kasza.",
+  "sek": 0.53,
+  "literowane_sek": 0.65,
+  "stosunek": 0.82
+ },
+ {
+  "slowo": "kasza",
+  "zapis": "kasza!",
+  "sek": 0.53,
+  "literowane_sek": 0.65,
+  "stosunek": 0.82
+ },
+ {
+  "slowo": "kasza",
+  "zapis": "Kasza",
+  "sek": 0.53,
+  "literowane_sek": 0.65,
+  "stosunek": 0.82
+ },
+ {
+  "slowo": "kasza",
+  "zapis": "kaasza",
+  "sek": 0.57,
+  "literowane_sek": 0.65,
+  "stosunek": 0.87
+ },
+ {
+  "slowo": "kasza",
+  "zapis": "kaasza.",
+  "sek": 0.57,
+  "literowane_sek": 0.65,
+  "stosunek": 0.87
+ },
+ {
+  "slowo": "klucz",
+  "zapis": "klucz",
+  "sek": 0.53,
+  "literowane_sek": 0.96,
+  "stosunek": 0.55
+ },
+ {
+  "slowo": "kosz",
+  "zapis": "kosz",
+  "sek": 0.44,
+  "literowane_sek": 0.76,
+  "stosunek": 0.57
+ },
+ {
+  "slowo": "leży",
+  "zapis": "leży",
+  "sek": 0.51,
+  "literowane_sek": 1.1,
+  "stosunek": 0.46
+ },
+ {
+  "slowo": "mecz",
+  "zapis": "mecz",
+  "sek": 0.53,
+  "literowane_sek": 0.8,
+  "stosunek": 0.66
+ },
+ {
+  "slowo": "morze",
+  "zapis": "morze",
+  "sek": 0.53,
+  "literowane_sek": 0.84,
+  "stosunek": 0.63
+ },
+ {
+  "slowo": "mysz",
+  "zapis": "mysz",
+  "sek": 0.5,
+  "literowane_sek": 1.08,
+  "stosunek": 0.46
+ },
+ {
+  "slowo": "ocz",
+  "zapis": "ocz",
+  "sek": 0.43,
+  "literowane_sek": 0.67,
+  "stosunek": 0.64
+ },
+ {
+  "slowo": "oczy",
+  "zapis": "oczy",
+  "sek": 0.5,
+  "literowane_sek": 1.03,
+  "stosunek": 0.48
+ },
+ {
+  "slowo": "osz",
+  "zapis": "osz",
+  "sek": 0.39,
+  "literowane_sek": 0.62,
+  "stosunek": 0.63
+ },
+ {
+  "slowo": "oszo",
+  "zapis": "oszo",
+  "sek": 0.51,
+  "literowane_sek": 0.62,
+  "stosunek": 0.81
+ },
+ {
+  "slowo": "oszo",
+  "zapis": "oszo.",
+  "sek": 0.51,
+  "literowane_sek": 0.62,
+  "stosunek": 0.81
+ },
+ {
+  "slowo": "oszo",
+  "zapis": "Oszo.",
+  "sek": 0.51,
+  "literowane_sek": 0.62,
+  "stosunek": 0.81
+ },
+ {
+  "slowo": "oszo",
+  "zapis": "oszo!",
+  "sek": 0.51,
+  "literowane_sek": 0.62,
+  "stosunek": 0.81
+ },
+ {
+  "slowo": "oszo",
+  "zapis": "Oszo",
+  "sek": 0.51,
+  "literowane_sek": 0.62,
+  "stosunek": 0.81
+ },
+ {
+  "slowo": "oszo",
+  "zapis": "ooszo",
+  "sek": 0.55,
+  "literowane_sek": 0.62,
+  "stosunek": 0.89
+ },
+ {
+  "slowo": "oszo",
+  "zapis": "ooszo.",
+  "sek": 0.55,
+  "literowane_sek": 0.62,
+  "stosunek": 0.89
+ },
+ {
+  "slowo": "ożo",
+  "zapis": "ożo",
+  "sek": 0.44,
+  "literowane_sek": 0.69,
+  "stosunek": 0.63
+ },
+ {
+  "slowo": "pączek",
+  "zapis": "pączek",
+  "sek": 0.72,
+  "literowane_sek": 1.01,
+  "stosunek": 0.71
+ },
+ {
+  "slowo": "płaszcz",
+  "zapis": "płaszcz",
+  "sek": 0.69,
+  "literowane_sek": 1.11,
+  "stosunek": 0.62
+ },
+ {
+  "slowo": "rzeka",
+  "zapis": "rzeka",
+  "sek": 0.62,
+  "literowane_sek": 0.79,
+  "stosunek": 0.79
+ },
+ {
+  "slowo": "róża",
+  "zapis": "róża",
+  "sek": 0.5,
+  "literowane_sek": 1.37,
+  "stosunek": 0.36
+ },
+ {
+  "slowo": "sza",
+  "zapis": "sza",
+  "sek": 0.37,
+  "literowane_sek": 0.39,
+  "stosunek": 0.93
+ },
+ {
+  "slowo": "sza",
+  "zapis": "sza.",
+  "sek": 0.37,
+  "literowane_sek": 0.39,
+  "stosunek": 0.93
+ },
+ {
+  "slowo": "sza",
+  "zapis": "Sza.",
+  "sek": 0.37,
+  "literowane_sek": 0.39,
+  "stosunek": 0.93
+ },
+ {
+  "slowo": "sza",
+  "zapis": "sza!",
+  "sek": 0.37,
+  "literowane_sek": 0.39,
+  "stosunek": 0.93
+ },
+ {
+  "slowo": "sza",
+  "zapis": "Sza",
+  "sek": 0.37,
+  "literowane_sek": 0.39,
+  "stosunek": 0.93
+ },
+ {
+  "slowo": "sza",
+  "zapis": "szaa",
+  "sek": 0.46,
+  "literowane_sek": 0.39,
+  "stosunek": 1.17
+ },
+ {
+  "slowo": "sza",
+  "zapis": "szaa.",
+  "sek": 0.46,
+  "literowane_sek": 0.39,
+  "stosunek": 1.17
+ },
+ {
+  "slowo": "szafa",
+  "zapis": "szafa",
+  "sek": 0.56,
+  "literowane_sek": 0.73,
+  "stosunek": 0.77
+ },
+ {
+  "slowo": "szał",
+  "zapis": "szał",
+  "sek": 0.52,
+  "literowane_sek": 0.66,
+  "stosunek": 0.78
+ },
+ {
+  "slowo": "szczotka",
+  "zapis": "szczotka",
+  "sek": 0.78,
+  "literowane_sek": 1.18,
+  "stosunek": 0.66
+ },
+ {
+  "slowo": "sze",
+  "zapis": "sze",
+  "sek": 0.35,
+  "literowane_sek": 0.51,
+  "stosunek": 0.7
+ },
+ {
+  "slowo": "szef",
+  "zapis": "szef",
+  "sek": 0.55,
+  "literowane_sek": 0.74,
+  "stosunek": 0.74
+ },
+ {
+  "slowo": "szeroki",
+  "zapis": "szeroki",
+  "sek": 0.68,
+  "literowane_sek": 1.11,
+  "stosunek": 0.61
+ },
+ {
+  "slowo": "szklanka",
+  "zapis": "szklanka",
+  "sek": 0.91,
+  "literowane_sek": 1.25,
+  "stosunek": 0.73
+ },
+ {
+  "slowo": "szkoła",
+  "zapis": "szkoła",
+  "sek": 0.66,
+  "literowane_sek": 0.87,
+  "stosunek": 0.76
+ },
+ {
+  "slowo": "szo",
+  "zapis": "szo",
+  "sek": 0.35,
+  "literowane_sek": 0.51,
+  "stosunek": 0.7
+ },
+ {
+  "slowo": "szopa",
+  "zapis": "szopa",
+  "sek": 0.57,
+  "literowane_sek": 0.66,
+  "stosunek": 0.87
+ },
+ {
+  "slowo": "szopa",
+  "zapis": "szopa.",
+  "sek": 0.57,
+  "literowane_sek": 0.66,
+  "stosunek": 0.87
+ },
+ {
+  "slowo": "szopa",
+  "zapis": "Szopa.",
+  "sek": 0.57,
+  "literowane_sek": 0.66,
+  "stosunek": 0.87
+ },
+ {
+  "slowo": "szopa",
+  "zapis": "szopa!",
+  "sek": 0.57,
+  "literowane_sek": 0.66,
+  "stosunek": 0.87
+ },
+ {
+  "slowo": "szopa",
+  "zapis": "Szopa",
+  "sek": 0.57,
+  "literowane_sek": 0.66,
+  "stosunek": 0.87
+ },
+ {
+  "slowo": "szopa",
+  "zapis": "szoopa",
+  "sek": 0.62,
+  "literowane_sek": 0.66,
+  "stosunek": 0.95
+ },
+ {
+  "slowo": "szopa",
+  "zapis": "szoopa.",
+  "sek": 0.62,
+  "literowane_sek": 0.66,
+  "stosunek": 0.95
+ },
+ {
+  "slowo": "szpak",
+  "zapis": "szpak",
+  "sek": 0.66,
+  "literowane_sek": 0.76,
+  "stosunek": 0.86
+ },
+ {
+  "slowo": "szpak",
+  "zapis": "szpak.",
+  "sek": 0.66,
+  "literowane_sek": 0.76,
+  "stosunek": 0.86
+ },
+ {
+  "slowo": "szpak",
+  "zapis": "Szpak.",
+  "sek": 0.66,
+  "literowane_sek": 0.76,
+  "stosunek": 0.86
+ },
+ {
+  "slowo": "szpak",
+  "zapis": "szpak!",
+  "sek": 0.66,
+  "literowane_sek": 0.76,
+  "stosunek": 0.86
+ },
+ {
+  "slowo": "szpak",
+  "zapis": "Szpak",
+  "sek": 0.66,
+  "literowane_sek": 0.76,
+  "stosunek": 0.86
+ },
+ {
+  "slowo": "szpak",
+  "zapis": "szpaak",
+  "sek": 0.72,
+  "literowane_sek": 0.76,
+  "stosunek": 0.95
+ },
+ {
+  "slowo": "szpak",
+  "zapis": "szpaak.",
+  "sek": 0.72,
+  "literowane_sek": 0.76,
+  "stosunek": 0.95
+ },
+ {
+  "slowo": "szpital",
+  "zapis": "szpital",
+  "sek": 0.79,
+  "literowane_sek": 1.02,
+  "stosunek": 0.78
+ },
+ {
+  "slowo": "sztuka",
+  "zapis": "sztuka",
+  "sek": 0.71,
+  "literowane_sek": 0.87,
+  "stosunek": 0.82
+ },
+ {
+  "slowo": "sztuka",
+  "zapis": "sztuka.",
+  "sek": 0.71,
+  "literowane_sek": 0.87,
+  "stosunek": 0.82
+ },
+ {
+  "slowo": "sztuka",
+  "zapis": "Sztuka.",
+  "sek": 0.71,
+  "literowane_sek": 0.87,
+  "stosunek": 0.82
+ },
+ {
+  "slowo": "sztuka",
+  "zapis": "sztuka!",
+  "sek": 0.71,
+  "literowane_sek": 0.87,
+  "stosunek": 0.82
+ },
+ {
+  "slowo": "sztuka",
+  "zapis": "Sztuka",
+  "sek": 0.71,
+  "literowane_sek": 0.87,
+  "stosunek": 0.82
+ },
+ {
+  "slowo": "sztuka",
+  "zapis": "sztuuka",
+  "sek": 0.7,
+  "literowane_sek": 0.87,
+  "stosunek": 0.81
+ },
+ {
+  "slowo": "sztuka",
+  "zapis": "sztuuka.",
+  "sek": 0.7,
+  "literowane_sek": 0.87,
+  "stosunek": 0.81
+ },
+ {
+  "slowo": "szu",
+  "zapis": "szu",
+  "sek": 0.35,
+  "literowane_sek": 0.51,
+  "stosunek": 0.7
+ },
+ {
+  "slowo": "szuka",
+  "zapis": "szuka",
+  "sek": 0.62,
+  "literowane_sek": 0.73,
+  "stosunek": 0.85
+ },
+ {
+  "slowo": "szuka",
+  "zapis": "szuka.",
+  "sek": 0.62,
+  "literowane_sek": 0.73,
+  "stosunek": 0.85
+ },
+ {
+  "slowo": "szuka",
+  "zapis": "Szuka.",
+  "sek": 0.62,
+  "literowane_sek": 0.73,
+  "stosunek": 0.85
+ },
+ {
+  "slowo": "szuka",
+  "zapis": "szuka!",
+  "sek": 0.62,
+  "literowane_sek": 0.73,
+  "stosunek": 0.85
+ },
+ {
+  "slowo": "szuka",
+  "zapis": "Szuka",
+  "sek": 0.62,
+  "literowane_sek": 0.73,
+  "stosunek": 0.85
+ },
+ {
+  "slowo": "szuka",
+  "zapis": "szuuka",
+  "sek": 0.63,
+  "literowane_sek": 0.73,
+  "stosunek": 0.87
+ },
+ {
+  "slowo": "szuka",
+  "zapis": "szuuka.",
+  "sek": 0.63,
+  "literowane_sek": 0.73,
+  "stosunek": 0.87
+ },
+ {
+  "slowo": "szum",
+  "zapis": "szum",
+  "sek": 0.48,
+  "literowane_sek": 0.69,
+  "stosunek": 0.69
+ },
+ {
+  "slowo": "szyja",
+  "zapis": "szyja",
+  "sek": 0.55,
+  "literowane_sek": 1.04,
+  "stosunek": 0.53
+ },
+ {
+  "slowo": "tusz",
+  "zapis": "tusz",
+  "sek": 0.43,
+  "literowane_sek": 0.74,
+  "stosunek": 0.58
+ },
+ {
+  "slowo": "ucz",
+  "zapis": "ucz",
+  "sek": 0.43,
+  "literowane_sek": 0.68,
+  "stosunek": 0.63
+ },
+ {
+  "slowo": "usz",
+  "zapis": "usz",
+  "sek": 0.39,
+  "literowane_sek": 0.65,
+  "stosunek": 0.61
+ },
+ {
+  "slowo": "uszu",
+  "zapis": "uszu",
+  "sek": 0.51,
+  "literowane_sek": 0.65,
+  "stosunek": 0.78
+ },
+ {
+  "slowo": "uszy",
+  "zapis": "uszy",
+  "sek": 0.5,
+  "literowane_sek": 0.91,
+  "stosunek": 0.54
+ },
+ {
+  "slowo": "uży",
+  "zapis": "uży",
+  "sek": 0.43,
+  "literowane_sek": 0.94,
+  "stosunek": 0.46
+ },
+ {
+  "slowo": "ysz",
+  "zapis": "ysz",
+  "sek": 1.05,
+  "literowane_sek": 0.89,
+  "stosunek": 1.18
+ },
+ {
+  "slowo": "ysz",
+  "zapis": "ysz.",
+  "sek": 1.05,
+  "literowane_sek": 0.89,
+  "stosunek": 1.18
+ },
+ {
+  "slowo": "ysz",
+  "zapis": "Ysz.",
+  "sek": 1.05,
+  "literowane_sek": 0.89,
+  "stosunek": 1.18
+ },
+ {
+  "slowo": "ysz",
+  "zapis": "ysz!",
+  "sek": 1.05,
+  "literowane_sek": 0.89,
+  "stosunek": 1.18
+ },
+ {
+  "slowo": "ysz",
+  "zapis": "Ysz",
+  "sek": 1.05,
+  "literowane_sek": 0.89,
+  "stosunek": 1.18
+ },
+ {
+  "slowo": "ysz",
+  "zapis": "yysz",
+  "sek": 0.51,
+  "literowane_sek": 0.89,
+  "stosunek": 0.57
+ },
+ {
+  "slowo": "ża",
+  "zapis": "ża",
+  "sek": 0.37,
+  "literowane_sek": 0.61,
+  "stosunek": 0.6
+ },
+ {
+  "slowo": "żaba",
+  "zapis": "żaba",
+  "sek": 0.54,
+  "literowane_sek": 0.69,
+  "stosunek": 0.78
+ },
+ {
+  "slowo": "że",
+  "zapis": "że",
+  "sek": 0.36,
+  "literowane_sek": 0.73,
+  "stosunek": 0.49
+ },
+ {
+  "slowo": "żo",
+  "zapis": "żo",
+  "sek": 0.36,
+  "literowane_sek": 0.73,
+  "stosunek": 0.49
+ },
+ {
+  "slowo": "żu",
+  "zapis": "żu",
+  "sek": 0.36,
+  "literowane_sek": 0.73,
+  "stosunek": 0.49
+ },
+ {
+  "slowo": "żuk",
+  "zapis": "żuk",
+  "sek": 0.53,
+  "literowane_sek": 0.69,
+  "stosunek": 0.77
+ },
+ {
+  "slowo": "ży",
+  "zapis": "ży",
+  "sek": 0.33,
+  "literowane_sek": 0.87,
+  "stosunek": 0.38
+ },
+ {
+  "slowo": "żyrafa",
+  "zapis": "żyrafa",
+  "sek": 0.62,
+  "literowane_sek": 1.35,
+  "stosunek": 0.46
+ }
+]

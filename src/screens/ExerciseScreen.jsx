@@ -561,7 +561,21 @@ function RhythmTimer({ exercise, onComplete }) {
   // „Waga” słowa (litery + stała) i ile ms przypada na jednostkę wagi przy tym lektorze i tym tempie.
   // Startujemy od szacunku, a po każdym przeczytanym zdaniu wpisujemy wartość ZMIERZONĄ.
   const wordWeight = (w) => ((w || '').replace(/[.,!?…:;]/g, '').length || 1) + 1.4
-  const unitMsRef = useRef(110 / Math.max(0.01, narratorRate))
+  // Zmierzone tempo zapamiętujemy na urządzeniu (osobno dla każdej prędkości lektora),
+  // żeby już pierwsze zdanie następnego ćwiczenia szło równo z głosem.
+  const unitKey = `stc_tts_unit_${Math.round(narratorRate * 100)}`
+  const unitMsRef = useRef((() => {
+    try { const v = Number(localStorage.getItem(unitKey)); if (v > 20 && v < 3000) return v } catch (e) {}
+    return 110 / Math.max(0.01, narratorRate)
+  })())
+  const saveUnit = (v) => { unitMsRef.current = v; try { localStorage.setItem(unitKey, String(Math.round(v))) } catch (e) {} }
+  // Rozkłada zmierzony czas CAŁEGO zdania na słowa proporcjonalnie do ich długości
+  const spreadTotal = (sIdx, words, total) => {
+    const sumW = words.reduce((a, w) => a + wordWeight(w), 0)
+    if (!(sumW > 0)) return
+    saveUnit(total / sumW)
+    recordedDurationsRef.current[sIdx] = words.map(w => Math.round(wordWeight(w) * unitMsRef.current))
+  }
   // Bieżące czytanie lektora (gdy przeglądarka nie podaje granic słów, mierzymy całe zdanie)
   const narrRef = useRef(null)
   const narrWaitTimerRef = useRef(null)
@@ -729,6 +743,15 @@ function RhythmTimer({ exercise, onComplete }) {
             if (!recordedDurationsRef.current[sIdx]) recordedDurationsRef.current[sIdx] = []
             recordedDurationsRef.current[sIdx][lastWordIdx] = lastWordMs(sIdx, words, lastWordIdx)
           }
+          // Kontrola: w Safari granice słów przychodzą w tempie NORMALNYM, nawet gdy lektor jest spowolniony.
+          // Jeśli lektor mówił wyraźnie dłużej, niż wynika z granic — wierzymy zegarowi całego zdania
+          // i od następnego zdania prowadzimy podkreślanie własnym, zmierzonym tempem.
+          const total = performance.now() - nar.t0
+          const sumRec = (recordedDurationsRef.current[sIdx] || []).reduce((a, d) => a + (d || 0), 0)
+          if (total > 400 && sumRec > 0 && total > sumRec * 1.2) {
+            spreadTotal(sIdx, words, total)
+            boundarySupportedRef.current = false
+          }
           narrRef.current = null
           finishNarratedPass(sIdx, words.length)
         } else {
@@ -743,6 +766,15 @@ function RhythmTimer({ exercise, onComplete }) {
           if (lastWordIdx >= 0) {
             if (!recordedDurationsRef.current[sIdx]) recordedDurationsRef.current[sIdx] = []
             recordedDurationsRef.current[sIdx][lastWordIdx] = lastWordMs(sIdx, words, lastWordIdx)
+          }
+          // Kontrola: w Safari granice słów przychodzą w tempie NORMALNYM, nawet gdy lektor jest spowolniony.
+          // Jeśli lektor mówił wyraźnie dłużej, niż wynika z granic — wierzymy zegarowi całego zdania
+          // i od następnego zdania prowadzimy podkreślanie własnym, zmierzonym tempem.
+          const total = performance.now() - nar.t0
+          const sumRec = (recordedDurationsRef.current[sIdx] || []).reduce((a, d) => a + (d || 0), 0)
+          if (total > 400 && sumRec > 0 && total > sumRec * 1.2) {
+            spreadTotal(sIdx, words, total)
+            boundarySupportedRef.current = false
           }
           narrRef.current = null
           finishNarratedPass(sIdx, words.length)
@@ -781,10 +813,7 @@ function RhythmTimer({ exercise, onComplete }) {
     nar.done = true
     const total = performance.now() - nar.t0
     const sumW = nar.words.reduce((a, w) => a + wordWeight(w), 0)
-    if (ok && total > 250 && sumW > 0 && !(recordedDurationsRef.current[nar.sIdx] || []).length) {
-      unitMsRef.current = total / sumW
-      recordedDurationsRef.current[nar.sIdx] = nar.words.map(w => Math.round(wordWeight(w) * unitMsRef.current))
-    }
+    if (ok && total > 250 && sumW > 0) spreadTotal(nar.sIdx, nar.words, total)
     if (nar.waiting) { clearTimeout(narrWaitTimerRef.current); startSilentPass(nar.sIdx) }
     else if (ok && passRef.current === 'with_narrator' && sentenceIdxRef.current === nar.sIdx && boundarySupportedRef.current === false) {
       // lektor skończył wcześniej niż szacowane podświetlanie — nie każemy czekać, zaczyna się powtórka
