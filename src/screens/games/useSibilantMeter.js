@@ -98,6 +98,7 @@ export function useSibilantMeter() {
   const framesRef   = useRef([])
   const infoRef     = useRef({ state: 'off', sampleRate: 0, noiseDb: null })
   const takeRef     = useRef(null)   // { startT, frames, recorder, chunks }
+  const trackRef    = useRef(null)   // śledzenie poziomu ciszy po kalibracji tła
 
   const loop = useCallback(() => {
     const analyser = analyserRef.current
@@ -111,10 +112,22 @@ export function useSibilantMeter() {
       const cal = calRef.current
 
       if (infoRef.current.state === 'calibrating') {
-        // Uśredniamy moc tła w każdym prążku
-        for (let i = 0; i < nBins; i++) cal.sum[i] += Math.pow(10, spec[i] / 10)
-        cal.n++
-        if (now >= cal.until && cal.n > 0) {
+        // Uśredniamy moc tła w każdym prążku.
+        // UWAGA (Safari): przez pierwsze chwile po włączeniu mikrofon oddaje „cyfrową ciszę” (same zera).
+        // Gdyby wziąć ją za tło pokoju, tło wyszłoby zerowe i potem KAŻDY szmer liczyłby się jako głos
+        // (pasek głośności od razu na zielonym, kalibracja idzie sama w ciszy). Dlatego: zera pomijamy,
+        // po pierwszej prawdziwej ramce odczekujemy jeszcze 0,3 s i dopiero wtedy mierzymy tło.
+        let peak = -Infinity
+        for (let i = 0; i < nBins; i++) if (spec[i] > peak) peak = spec[i]
+        const real = Number.isFinite(peak) && peak > -140
+        if (real && !cal.firstReal) { cal.firstReal = now; cal.until = now + 300 + NOISE_CAL_MS }
+        if (real && now >= cal.firstReal + 300) {
+          for (let i = 0; i < nBins; i++) cal.sum[i] += Math.pow(10, Math.max(-160, spec[i]) / 10)
+          cal.n++
+        }
+        if (!cal.firstReal && now - cal.t0 > 4000) {
+          infoRef.current = { ...infoRef.current, state: 'error' }   // mikrofon nie oddaje dźwięku
+        } else if (cal.firstReal && now >= cal.until && cal.n >= 8) {
           const noise = new Float32Array(nBins)
           let band = 0
           const lo = Math.floor(BAND_LO_HZ / binHz)
@@ -122,6 +135,7 @@ export function useSibilantMeter() {
           for (let i = 0; i < nBins; i++) noise[i] = cal.sum[i] / cal.n
           for (let i = lo; i <= hi; i++) band += noise[i]
           noiseRef.current = noise
+          trackRef.current = { buckets: [], cur: Infinity, curStart: now }
           infoRef.current = { ...infoRef.current, state: 'on', noiseDb: Math.round(10 * Math.log10(band + 1e-20)) }
         }
       } else if (infoRef.current.state === 'on') {
@@ -139,6 +153,29 @@ export function useSibilantMeter() {
         }
         let noiseVoice = 0
         for (let i = vLo; i <= vHi; i++) { voice += Math.max(0, Math.pow(10, spec[i] / 10) - noise[i] * 1.5); noiseVoice += noise[i] }
+
+        // Tło pokoju może się zmienić (albo pierwszy pomiar był nietrafiony). Pilnujemy NAJCICHSZEGO
+        // poziomu z ostatnich 6 s: jeśli przez cały ten czas jest ≥ 3× głośniej albo ciszej niż zapisane tło,
+        // przesuwamy tło do tego poziomu. Mowa i długie „ssss” mają przerwy, więc ich to nie rusza.
+        let raw = 0
+        for (let i = vLo; i <= vHi; i++) raw += Math.pow(10, Math.max(-160, spec[i]) / 10)
+        for (let i = lo; i <= hi; i++) raw += Math.pow(10, Math.max(-160, spec[i]) / 10)
+        const tr = trackRef.current
+        if (tr) {
+          tr.cur = Math.min(tr.cur, raw)
+          if (now - tr.curStart >= 500) {
+            tr.buckets.push(tr.cur); if (tr.buckets.length > 12) tr.buckets.shift()
+            tr.cur = Infinity; tr.curStart = now
+            if (tr.buckets.length === 12) {
+              const floor = Math.min(...tr.buckets), ref = noiseVoice + noiseBand
+              if (ref > 0 && floor > 0 && (floor > ref * 3 || floor < ref / 3)) {
+                const k = floor / ref
+                for (let i = 0; i < nBins; i++) noise[i] *= k
+                tr.buckets = []
+              }
+            }
+          }
+        }
 
         const hiss = band > noiseBand * HISS_OVER_NOISE && band > voice * HISS_OVER_VOICE
         const cog  = band > 0 ? weighted / band : 0
@@ -177,7 +214,7 @@ export function useSibilantMeter() {
       specRef.current = new Float32Array(analyser.frequencyBinCount)
       calRef.current = {
         sum: new Float64Array(analyser.frequencyBinCount), n: 0,
-        until: performance.now() + NOISE_CAL_MS,
+        until: performance.now() + NOISE_CAL_MS, t0: performance.now(), firstReal: 0,
       }
       framesRef.current = []
       infoRef.current = { state: 'calibrating', sampleRate: ctx.sampleRate, noiseDb: null }
@@ -210,7 +247,7 @@ export function useSibilantMeter() {
     if (!analyser) return
     calRef.current = {
       sum: new Float64Array(analyser.frequencyBinCount), n: 0,
-      until: performance.now() + NOISE_CAL_MS,
+      until: performance.now() + NOISE_CAL_MS, t0: performance.now(), firstReal: 0,
     }
     infoRef.current = { ...infoRef.current, state: 'calibrating' }
   }, [])

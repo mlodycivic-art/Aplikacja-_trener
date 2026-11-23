@@ -58,6 +58,7 @@ export default function QuickMicCalibration() {
   const [flash, setFlash] = useState('')
   const [level, setLevel] = useState(0)
   const [fails, setFails] = useState(0)
+  const [count, setCount] = useState(3)
   const [note, setNote] = useState('')            // komunikat na ekranie głównym po zakończonym kroku
   const [bad, setBad] = useState(null)            // nieudany pomiar kroku 2 (nie zapisany)
   const [saved, setSaved] = useState(getQuickProfile())
@@ -81,6 +82,7 @@ export default function QuickMicCalibration() {
       if (st === 'home' || st === 'result' || st === 'error' || st === 'judge') return
       if (st === 'noise') {
         if (meter.getInfo().state === 'on') { D.lastT = now; D.volMs = 0; D.waitSince = now; setStage('vol') }
+        else if (meter.getInfo().state === 'error') { meter.stop(); setStage('error') }
         return
       }
 
@@ -99,6 +101,14 @@ export default function QuickMicCalibration() {
         return
       }
 
+      if (st === 'gap') {
+        // przerwa między „s” a „sz”: nic nie mierzymy, dziecko przestawia buzię
+        const left = D.gapUntil - now
+        setCount(Math.max(1, Math.ceil(left / 1000 - 0.5)))
+        if (left <= 0) { D.lastT = now; D.quietSince = now; setStage('sz') }
+        return
+      }
+
       if (st === 's' || st === 'sz') {
         const bucket = D[st]
         let got = false
@@ -109,7 +119,7 @@ export default function QuickMicCalibration() {
           setFlash(lv >= VOL_OK_DB ? 'Słyszę głos, ale nie sam szum głoski. Sycz bez głosu, długo.' : lv >= 4 ? 'Za cicho. Bliżej mikrofonu albo mocniej.' : 'Czekam na głoskę…')
         }
         if (bucket.length >= NEED_FRAMES) {
-          if (st === 's') { setProgress(0); D.quietSince = now; setFlash(''); setStage('sz') }
+          if (st === 's') { setProgress(0); setFlash(''); D.gapUntil = now + 3500; setCount(3); setStage('gap') }   // przerwa na przestawienie buzi
           else {
             const p = computeQuickProfile(D.s, D.sz)
             if (p.quality !== 'good') { meter.stop(); setBad(p); setStage('result') }
@@ -270,7 +280,7 @@ export default function QuickMicCalibration() {
           Każdy krok zapisuje się od razu, więc można przerwać i wrócić później.
         </p>
         {note && <div style={{ padding: '8px 12px', borderRadius: 10, background: 'var(--active-bg)', fontWeight: 700, fontSize: 14, marginBottom: 10 }} data-note>{note}</div>}
-        {stage === 'error' && <div style={{ color: 'var(--red)', fontWeight: 700, marginBottom: 10 }}>Brak dostępu do mikrofonu. Zezwól na mikrofon w przeglądarce i spróbuj ponownie.</div>}
+        {stage === 'error' && <div style={{ color: 'var(--red)', fontWeight: 700, marginBottom: 10 }}>Mikrofon nie działa albo nie oddaje dźwięku. Zezwól na mikrofon w przeglądarce, sprawdź w ustawieniach systemu, który mikrofon jest wybrany, i spróbuj ponownie.</div>}
 
         {steps.map(s => (
           <div key={s.n} data-step={s.n} data-state={s.state} style={{ display: 'flex', gap: 10, alignItems: 'center', padding: '10px 0', borderTop: '1px solid var(--border)', opacity: s.locked ? 0.5 : 1 }}>
@@ -318,6 +328,20 @@ export default function QuickMicCalibration() {
         <LevelBar db={level} />
         <div className="progress-wrap dark" style={{ height: 8, marginTop: 8 }}><div className="progress-fill colored" style={{ width: `${progress * 100}%` }} /></div>
         <div style={{ minHeight: 22, marginTop: 10, fontWeight: 700, fontSize: 14, color: 'var(--orange)' }} data-flash>{flash}</div>
+        <Stop />
+      </div>
+    )
+  }
+
+  if (stage === 'gap') {
+    return (
+      <div className="card" style={{ textAlign: 'center' }}>
+        <div className="form-label">Krok 2 · pierwsza głoska gotowa</div>
+        <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--green)', margin: '4px 0' }}>„ssss” zapisane ✓</div>
+        <p style={{ fontSize: 16, fontWeight: 700, margin: '10px 0 4px' }}>Stop. Weź oddech. Teraz będzie:</p>
+        <div style={{ fontSize: 40, fontWeight: 800, letterSpacing: 2, color: 'var(--blue)' }}>szszszsz</div>
+        <p className="text-muted" style={{ fontSize: 14, margin: '6px 0' }}>{SUSTAIN.sz.hint}</p>
+        <div style={{ fontSize: 44, fontWeight: 800, color: 'var(--primary)' }} data-count>{count}</div>
         <Stop />
       </div>
     )
