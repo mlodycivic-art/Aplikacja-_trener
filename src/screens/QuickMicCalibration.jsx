@@ -276,7 +276,9 @@ export default function QuickMicCalibration() {
   // ── Ekran główny: lista kroków ────────────────────────────────────────────
   if (stage === 'home' || stage === 'error') {
     const steps = [
-      { n: 1, title: 'Głośność', why: 'Sprawdza się sama na początku każdego kroku: czy mikrofon dobrze słyszy.', state: 'auto' },
+      { n: 1, title: 'Głośność', auto: true, state: hasThreshold ? 'done' : 'todo',
+        why: hasThreshold ? 'Sprawdzona. Powtarza się sama na początku każdego kroku, nic tu nie trzeba klikać.'
+          : 'Nic tu nie klikasz: sprawdzi się sama, gdy zaczniesz krok 2.' },
       { n: 2, title: 'Długie „s” i „sz”', why: 'Ok. 20 sekund. Z tego powstaje próg i gry zaczynają oceniać głoski.',
         state: hasThreshold ? 'done' : 'todo', info: hasThreshold ? `próg ${saved.hz} Hz` : '', go: () => start('sustain'), locked: false },
       { n: 3, title: 'Sylaby', why: 'Osiem sylab (sa, sza, ca, cza…). Dopasowuje próg do krótkich głosek.',
@@ -285,7 +287,7 @@ export default function QuickMicCalibration() {
         state: wordsOk ? 'done' : wordsDone || doneWords.length ? 'part' : 'todo', info: doneWords.length ? `${agreeCount} z ${TEST_WORDS.length}` : '',
         go: () => start('test', wordsDone || !doneWords.length ? TEST_WORDS : toRepeat), locked: !hasThreshold },
     ]
-    const next = steps.find(s => s.state !== 'auto' && s.state !== 'done' && !s.locked)
+    const next = steps.find(s => !s.auto && s.state !== 'done' && !s.locked)
     const summary = !hasThreshold ? { c: 'var(--muted)', t: 'Gry z mikrofonem jeszcze nie oceniają głosek. Zrób krok 2.' }
       : !doneWords.length && saved.accuracy != null && saved.accuracy < 0.7 ? { c: 'var(--yellow)', t: 'Gry działają w trybie treningowym, bo poprzedni test słów wypadł słabo. Zrób krok 4 jeszcze raz: teraz Ty oceniasz każde słowo.' }
       : wordsDone && !wordsOk ? { c: 'var(--yellow)', t: `Gry działają w trybie treningowym: w teście słów zgodność ${agreeCount} z ${TEST_WORDS.length} (cel ${TARGET}). Powtórz tylko słowa z ✕.` }
