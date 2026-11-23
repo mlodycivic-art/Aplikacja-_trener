@@ -55,7 +55,8 @@ function Pin({ x, y, fallen, order }) {
 
 // history: wyniki wcześniejszych rzutów w tej sesji (w % rytmu) — do tabliczki wyników
 // missText / scoreLabel: inne ćwiczenia (np. SZ Lip Shape) podają własne napisy
-export default function BowlingReward({ pct, onDone, history = [], missText, scoreLabel }) {
+// detail: dodatkowa linijka pod wynikiem (np. które słowa / głoski wyszły)
+export default function BowlingReward({ pct, onDone, history = [], missText, scoreLabel, detail }) {
   const [phase, setPhase] = useState('ready') // ready | rolling | impact | result
   const [missSide] = useState(() => (Math.random() < 0.5 ? 'left' : 'right'))
   const loggedRef = useRef(false)
@@ -147,7 +148,7 @@ export default function BowlingReward({ pct, onDone, history = [], missText, sco
         </g>
       </svg>
 
-      <div style={{ minHeight: 58, marginTop: 6 }}>
+      <div style={{ minHeight: 78, marginTop: 6 }}>
         {phase === 'result' && (
           <div style={{ animation: 'stcPop .35s ease-out' }}>
             {isMiss ? (
@@ -158,6 +159,7 @@ export default function BowlingReward({ pct, onDone, history = [], missText, sco
               <p style={{ fontWeight: 800, fontSize: 20 }}>{pins} / 10 kręgli</p>
             )}
             <p style={{ fontSize: 13, color: 'var(--muted)', marginTop: 2 }}>{scoreLabel || 'Dopasowanie rytmu'}: {Math.round(pct)}%</p>
+            {detail ? <div style={{ fontSize: 13, marginTop: 4, lineHeight: 1.5 }} data-throw-detail>{detail}</div> : null}
           </div>
         )}
       </div>

@@ -10,7 +10,8 @@
 //   mic.stop()                // zamyka mikrofon
 //   const { ratio, speakingMs, windowMs } = mic.getResult()
 
-import { useRef, useCallback } from 'react'
+import { useRef, useCallback, useMemo } from 'react'
+import { scoreWords } from './speechScore'
 
 // Próg „mówi / nie mówi” dobiera się sam do pokoju i mikrofonu (bez kalibracji):
 // śledzimy poziom ciszy, a mowa to wyraźnie więcej niż cisza. Stały próg 0.06 był za wysoki
@@ -31,7 +32,8 @@ export function useMicRhythm() {
   const floorRef        = useRef(0.004)   // poziom ciszy (tła)
   const wordRef         = useRef(0)       // które słowo jest teraz podkreślane
   const framesRef       = useRef(0)
-  const perWordRef      = useRef([])      // [{ ms, speak }] — osobno dla każdego słowa
+  const timelineRef     = useRef([])      // [{ t, dt, speaking }] — ramki z otwartego okna słuchania
+  const marksRef        = useRef([])      // [{ i, t }] — początki słów
 
   const loop = useCallback((ts) => {
     const analyser = analyserRef.current
@@ -62,10 +64,7 @@ export function useMicRhythm() {
           const speaking = rms > threshold
           windowMsRef.current += dt
           if (speaking) speakingMsRef.current += dt
-          const i = wordRef.current
-          const w = perWordRef.current[i] || (perWordRef.current[i] = { ms: 0, speak: 0 })
-          w.ms += dt
-          if (speaking) w.speak += dt
+          timelineRef.current.push({ t: ts, dt, speaking })
         }
       }
       lastTsRef.current = ts
@@ -113,36 +112,26 @@ export function useMicRhythm() {
     windowActiveRef.current = active
   }, [])
 
-  const markWord = useCallback((i) => { wordRef.current = i }, [])
+  const markWord = useCallback((i) => { wordRef.current = i; marksRef.current.push({ i, t: performance.now() }) }, [])
 
   const resetCounters = useCallback(() => {
     windowMsRef.current = 0
     speakingMsRef.current = 0
-    perWordRef.current = []
+    timelineRef.current = []
+    marksRef.current = []
     wordRef.current = 0
   }, [])
 
-  // Wynik = ile słów zdania dziecko powiedziało „w swoim czasie” (gdy słowo było podkreślane).
-  // Słowo jest zaliczone, gdy głos było słychać przez co najmniej 30% jego czasu (min. 120 ms).
-  // Naturalne przerwy w mowie (oddech, zwarcia w „k”, „p”, „t”) nie obniżają wyniku.
-  // Cisza przez całe zdanie = 0. Bez podziału na słowa (stary sposób): zwykłe pokrycie czasu.
-  const getResult = useCallback((wordCount, minFrac = 0.3) => {
-    const windowMs   = windowMsRef.current
-    const speakingMs = speakingMsRef.current
-    let ratio = windowMs > 0 ? Math.min(1, speakingMs / windowMs) : 0
-    let wordsSpoken = null
-    if (wordCount > 0) {
-      wordsSpoken = 0
-      const heard = (i) => { const w = perWordRef.current[i]; return !!w && w.ms > 0 && w.speak >= Math.min(w.ms * 0.8, Math.max(120, w.ms * minFrac)) }
-      for (let i = 0; i < wordCount; i++) {
-        const w = perWordRef.current[i]
-        // krótkie słowo („ma”, „i”) dziecko często mówi z małym opóźnieniem — liczy się też głos tuż po nim
-        if (heard(i) || (w && w.ms < 450 && i + 1 < wordCount && heard(i + 1))) wordsSpoken++
-      }
-      ratio = wordsSpoken / wordCount
-    }
-    return { ratio, speakingMs, windowMs, wordsSpoken }
-  }, [])
+  // Które słowa dziecko powiedziało „w swoim czasie” — patrz scoreWords() w useSpeechJudge.js
+  const getHeard = useCallback((wordCount, opts) => scoreWords(timelineRef.current, marksRef.current, wordCount, opts), [])
 
-  return { start, stop, setWindowActive, markWord, resetCounters, getResult }
+  const getResult = useCallback((wordCount, opts) => {
+    const windowMs = windowMsRef.current, speakingMs = speakingMsRef.current
+    const heard = wordCount > 0 ? getHeard(wordCount, opts) : []
+    const ratio = wordCount > 0 ? heard.filter(Boolean).length / wordCount : (windowMs > 0 ? Math.min(1, speakingMs / windowMs) : 0)
+    return { ratio, speakingMs, windowMs, heard }
+  }, [getHeard])
+
+  return useMemo(() => ({ start, stop, setWindowActive, markWord, resetCounters, getResult, getHeard }),
+    [start, stop, setWindowActive, markWord, resetCounters, getResult, getHeard])
 }

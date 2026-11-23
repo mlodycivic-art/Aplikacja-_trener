@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { calcDayStats } from '../data/defaultData'
 import { playSound, useTitleFlash, playApplause } from '../components/useAlarm'
-import { useMicRhythm } from './games/useMicRhythm'
+import { useSpeechJudge } from './games/useSpeechJudge'
 import BowlingReward, { pinsForPct } from './games/BowlingReward'
 import BalloonGame from './games/BalloonGame'
 import BubbleGame from './games/BubbleGame'
@@ -222,7 +222,7 @@ function SzLipTimer({ exercise, onComplete }) {
 
   // ── Gra w kręgle: mikrofon słucha TYLKO w czasie na powtórzenie (po lektorze), osobno dla każdego słowa.
   // Po każdej serii rzut: ile słów dziecko powtórzyło, tyle kręgli. Bez mikrofonu ćwiczenie działa jak dawniej.
-  const mic = useMicRhythm()
+  const mic = useSpeechJudge()
   const micOnRef       = useRef(false)
   const micAskedRef    = useRef(false)
   const narrStartRef   = useRef(0)
@@ -230,10 +230,14 @@ function SzLipTimer({ exercise, onComplete }) {
   const afterThrowRef  = useRef(null)
   const [showThrow, setShowThrow] = useState(false)
   const [throwPct,  setThrowPct]  = useState(0)
+  const [throwDetail, setThrowDetail] = useState(null)
+  const [micWait, setMicWait] = useState(false)
+  // Mikrofon włącza się przy pierwszym Starcie; po kalibracji potrzebuje ok. sekundy ciszy na pomiar tła
   const ensureMic = () => {
-    if (micAskedRef.current) return
+    if (micAskedRef.current) return Promise.resolve()
     micAskedRef.current = true
-    Promise.resolve(mic.start()).then(ok => { micOnRef.current = !!ok })
+    setMicWait(true)
+    return Promise.resolve(mic.start()).then(ok => { micOnRef.current = !!ok }).catch(() => {}).then(() => setMicWait(false))
   }
 
   useEffect(() => () => {
@@ -340,10 +344,24 @@ function SzLipTimer({ exercise, onComplete }) {
       mic.setWindowActive(false)
       if (micOnRef.current) {
         // koniec serii = rzut kulą
-        const res = mic.getResult(words.length, 0.15)
+        const res = mic.getResult(words, { perWord: true, minFrac: 0.15, minMs: 150 })
         mic.resetCounters()
         throwHistoryRef.current = [...throwHistoryRef.current, res.ratio * 100]
         afterThrowRef.current = goOn
+        // które słowa wyszły: ✓ powiedziane (i „sz/cz” zabrzmiało dobrze), „s” = zabrzmiało jak s, – = nie słychać
+        setThrowDetail(
+          <span>
+            {res.details.map((dd, k) => {
+              const good = dd.heard && (dd.sound === null || dd.sound === 'ok')
+              return (
+                <span key={k} style={{ marginRight: 8, fontWeight: 700, color: good ? '#16A34A' : !dd.heard ? '#94A3B8' : '#EA580C', whiteSpace: 'nowrap' }}>
+                  {dd.word} {good ? '✓' : !dd.heard ? '–' : dd.sound === 's' ? '✕ jak „s”' : '?'}
+                </span>
+              )
+            })}
+            {res.mode !== 'judge' && <span style={{ display: 'block', color: 'var(--muted)', fontSize: 11 }}>Bez kalibracji mikrofonu: sprawdzam tylko, czy słychać głos.</span>}
+          </span>
+        )
         setThrowPct(res.ratio * 100)
         setShowThrow(true)
         return
@@ -358,6 +376,7 @@ function SzLipTimer({ exercise, onComplete }) {
     if (running) {
       setRunning(false)
       mic.setWindowActive(false)
+      if (phaseRef.current === 'starting') phaseRef.current = 'idle'   // pauza w trakcie włączania mikrofonu
       clearTimeout(timeoutRef.current)
       clearTimeout(showWordTimerRef.current)
       if (speakingGuardRef.current) speakingGuardRef.current.done = true
@@ -368,9 +387,12 @@ function SzLipTimer({ exercise, onComplete }) {
     }
 
     setRunning(true)
-    ensureMic()
     if (phase === 'idle') {
-      enterSpeaking(0, 0)
+      // lektor zaczyna dopiero, gdy mikrofon zmierzy tło (cisza przez chwilę)
+      phaseRef.current = 'starting'
+      ensureMic().then(() => { if (phaseRef.current === 'starting') enterSpeaking(0, 0) })
+    } else if (phaseRef.current === 'starting') {
+      // jeszcze czekamy na mikrofon
     } else if (phase !== 'done') {
       // Wznawiamy — po prostu powtarzamy bieżące słowo od nowa
       const { repIdx: rIdx, wordIdx: wIdx } = idxStateRef.current
@@ -414,7 +436,7 @@ function SzLipTimer({ exercise, onComplete }) {
       {showThrow && (
         <BowlingReward key={throwHistoryRef.current.length} pct={throwPct} history={throwHistoryRef.current}
           missText="Kula w rynnie. W następnej serii powtarzaj głośno po lektorze."
-          scoreLabel="Powtórzone słowa"
+          scoreLabel="Wynik serii" detail={throwDetail}
           onDone={() => { setShowThrow(false); const f = afterThrowRef.current; afterThrowRef.current = null; if (f) f() }} />
       )}
 
@@ -467,6 +489,8 @@ function SzLipTimer({ exercise, onComplete }) {
       <div style={{ textAlign: 'center', fontSize: 12, color: 'var(--muted)', marginBottom: 14 }}>
         {phase === 'done'
           ? '✓ Wszystkie serie ukończone!'
+          : micWait
+          ? 'Cisza przez chwilę: mikrofon słucha pokoju…'
           : phase === 'idle'
           ? 'Kliknij Start, aby zacząć'
           : isListening
@@ -511,7 +535,7 @@ function RhythmTimer({ exercise, onComplete }) {
   const [stepsDone, setStepsDone] = useState(0)
 
   // ── Mikrofon: pokrycie czasowe mowy podczas przebiegu "cichego" (rytm/tempo, nie treść) ──
-  const mic = useMicRhythm()
+  const mic = useSpeechJudge()
   const micStartedRef = useRef(false)
   const [showThrow, setShowThrow] = useState(false)
   const [throwPct, setThrowPct]   = useState(0)
@@ -519,11 +543,14 @@ function RhythmTimer({ exercise, onComplete }) {
   const pendingNextSentenceRef = useRef(0)
   const isLastThrowRef       = useRef(false)
 
+  const [throwDetail, setThrowDetail] = useState('')
+  const [micWait, setMicWait] = useState(false)
+  // Po kalibracji mikrofon potrzebuje ok. sekundy ciszy na pomiar tła — lektor zaczyna dopiero potem
   const ensureMicStarted = () => {
-    if (!micStartedRef.current) {
-      micStartedRef.current = true
-      mic.start()
-    }
+    if (micStartedRef.current) return Promise.resolve()
+    micStartedRef.current = true
+    setMicWait(true)
+    return Promise.resolve(mic.start()).catch(() => {}).then(() => setMicWait(false))
   }
 
   useEffect(() => {
@@ -929,8 +956,12 @@ function RhythmTimer({ exercise, onComplete }) {
       // Koniec przebiegu cichego DANEGO zdania = koniec jednego "rzutu" w grze kręgli.
       // Dwa zdania = jedna runda (dwa rzuty), tak jak w prawdziwych kręglach.
       bump()
-      const res = mic.getResult(words.length)
+      const res = mic.getResult(words, { lagMs: 250, minFrac: 0.45, minMs: 100 })
       mic.resetCounters()
+      setThrowDetail(
+        `Słowa w rytmie: ${res.heardCount} z ${res.wordCount}` +
+        (res.sounds ? ` · głoski sz/cz: ${res.sounds.ok} z ${res.sounds.need}` : res.mode !== 'judge' ? ' · bez kalibracji mikrofonu głosek nie oceniam' : '')
+      )
       const nextS = sIdx + 1
       const isLast = nextS >= sentenceList.length
       throwHistoryRef.current = [...throwHistoryRef.current, res.ratio * 100]
@@ -976,8 +1007,8 @@ function RhythmTimer({ exercise, onComplete }) {
       setStepsDone(0)
       setShowThrow(false)
       throwHistoryRef.current = []
-      ensureMicStarted()
-      enterSentence(0)
+      const myToken = bump()
+      ensureMicStarted().then(() => { if (tokenRef.current === myToken) enterSentence(0) })
     } else if (pass === 'with_narrator') {
       // Wznowienie w trakcie przebiegu z lektorem — po prostu przeczytaj zdanie od nowa
       enterSentence(sentenceIdxRef.current)
@@ -998,9 +1029,9 @@ function RhythmTimer({ exercise, onComplete }) {
     setStepsDone(0)
     setShowThrow(false)
     throwHistoryRef.current = []
-    ensureMicStarted()
     setRunning(true)
-    enterSentence(0)
+    const myToken = bump()
+    ensureMicStarted().then(() => { if (tokenRef.current === myToken) enterSentence(0) })
   }
 
   const pct = totalStepsAll > 0 ? Math.min(100, (stepsDone / totalStepsAll) * 100) : 0
@@ -1107,7 +1138,7 @@ function RhythmTimer({ exercise, onComplete }) {
       </div>
 
       {showThrow ? (
-        <BowlingReward key={throwHistoryRef.current.length} pct={throwPct} onDone={handleThrowDone} history={throwHistoryRef.current} />
+        <BowlingReward key={throwHistoryRef.current.length} pct={throwPct} onDone={handleThrowDone} history={throwHistoryRef.current} scoreLabel="Wynik zdania" detail={throwDetail} />
       ) : phase === 'done' ? (
         <div>
           <p style={{ textAlign: 'center', fontSize: 13, color: 'var(--muted)', marginBottom: 10 }}>
