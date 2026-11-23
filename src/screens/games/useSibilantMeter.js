@@ -145,7 +145,9 @@ export function useSibilantMeter() {
         // loud = słychać głos lub szum wyraźnie ponad tło (do wykrywania początku i końca wypowiedzi)
         const loud = hiss || (voice + band) > (noiseVoice + noiseBand) * LOUD_OVER_NOISE
         // bands: kształt widma w 11 pasmach — do wyłapywania własnych słów (data/wordSpotter.js)
-        const frame = { t: now, hiss, loud, cog, db: 10 * Math.log10(band + 1e-20), bands: bandVector(spec, noise, binHz) }
+        // lvl: o ile dB głos + szum są ponad tłem pokoju (0 = cisza, ok. 7 = „ktoś mówi”) — do paska głośności
+        const lvl = Math.max(0, 10 * Math.log10((voice + band) / (noiseVoice + noiseBand + 1e-20) + 1e-6))
+        const frame = { t: now, hiss, loud, cog, lvl, db: 10 * Math.log10(band + 1e-20), bands: bandVector(spec, noise, binHz) }
 
         const frames = framesRef.current
         frames.push(frame)

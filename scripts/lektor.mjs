@@ -68,7 +68,9 @@ const ratio = (w, text) => {
   report.push({ slowo: w, zapis: text, sek: +sec.toFixed(2), literowane_sek: +ref.toFixed(2), stosunek: +(sec / ref).toFixed(2) })
   return sec / ref
 }
-const isSpelledOut = (w, text) => ratio(w, text) > 0.8
+// Pomiar na iMacu (Zosia): zwykłe słowo trwa ok. 0,1–0,19 s na literę, literowane „ysz” — 0,35 s na literę.
+// Samo porównanie z wzorcem „y s z” myliło się przy krótkich sylabach, więc decyduje czas na literę.
+const isSpelledOut = (w, text) => { ratio(w, text); const sec = report[report.length - 1].sek; return sec > 0.22 * [...w].length + 0.15 }
 
 const result = {}
 const failed = []

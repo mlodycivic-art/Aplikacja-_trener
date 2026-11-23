@@ -329,25 +329,55 @@ function QuickTest() {
 //  - Kalibracja: 1 minuta, długie "ssss" i "szszsz" → próg dla gier,
 //  - Szybki test: podgląd pomiaru na żywo i porównanie par słów (nic nie zapisuje),
 //  - Baza wzorców: trwałe nagrania słów oceniane przez logopedę → dokładniejszy próg.
-const TABS = [
-  { id: 'cal',  label: 'Kalibracja',   sub: 'Jedna minuta: długie „ssss” i „szszsz”. Z tego powstaje próg dla gier.' },
-  { id: 'test', label: 'Szybki test',  sub: 'Podgląd na żywo: czy mikrofon odróżnia „soczek” od „socek”.' },
-  { id: 'base', label: 'Baza wzorców', sub: 'Nagrania słów oceniane przez logopedę. Dokładniejszy próg, ważniejszy niż kalibracja.' },
-  { id: 'words', label: 'Słowa', sub: 'Własne słowa wyłapywane w oknie starannej mowy: lista, nagranie wzorców, test trafności.' },
+// Główna ścieżka to kalibracja krok po kroku. Reszta to narzędzia dodatkowe, schowane pod „Zaawansowane”.
+const ADVANCED = [
+  { id: 'test', label: 'Podgląd na żywo', saves: 'Nic się nie zapisuje',
+    what: 'Wykres pokazuje na bieżąco, jak mikrofon słyszy głoski: kropki u góry to „s”, na dole „sz”.',
+    how: ['Kliknij „Włącz mikrofon”.', 'Powiedz długie „ssss”, potem „szszsz” i patrz, czy kropki zmieniają stronę.', 'Niżej możesz nagrać parę słów (np. socek / soczek) i porównać. To tylko sprawdzenie, wynik znika po wyjściu.'] },
+  { id: 'base', label: 'Baza wzorców', saves: 'Zapisuje nagrania i dokładniejszy próg',
+    what: 'Nagrania par słów (błędnie / poprawnie), które dorosły albo logopeda ocenia. Daje dokładniejszy próg niż kalibracja i ma przed nią pierwszeństwo.',
+    how: ['Wybierz parę słów, np. socek / soczek.', 'Nagraj po kilka razy wersję błędną i poprawną.', 'Przy każdym nagraniu zaznacz, czy zabrzmiało tak, jak miało. Próg policzy się sam.'] },
+  { id: 'words', label: 'Własne słowa', saves: 'Zapisuje listę słów i ich wzorce',
+    what: 'Słowa, które aplikacja ma wyłapywać w „oknie starannej mowy” (np. szkoła, soczek).',
+    how: ['Dopisz słowo do listy i kliknij „Dodaj”.', 'Kliknij „Nagraj brakujące”: aplikacja pokazuje słowa po kolei, a dziecko je mówi.', 'Na końcu „Zacznij test”, żeby sprawdzić, czy aplikacja je rozpoznaje.'] },
 ]
 
 export default function SibilantTestScreen() {
-  const [tab, setTab] = useState('cal')
+  const [open, setOpen] = useState(false)
+  const [tool, setTool] = useState(null)
+  const cur = ADVANCED.find(t => t.id === tool)
+  if (cur) {
+    return (
+      <div>
+        <button className="btn btn-ghost btn-sm" onClick={() => setTool(null)} data-back>← Wróć do kalibracji</button>
+        <h2 className="section-title" style={{ marginTop: 8 }}>{cur.label}</h2>
+        <div className="card" style={{ marginBottom: 12 }}>
+          <div style={{ fontSize: 14, lineHeight: 1.5 }}>{cur.what}</div>
+          <ol style={{ margin: '8px 0 0 18px', fontSize: 13, lineHeight: 1.6 }}>{cur.how.map((h, i) => <li key={i}>{h}</li>)}</ol>
+          <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--muted)', marginTop: 8 }}>{cur.saves}</div>
+        </div>
+        {tool === 'test' ? <QuickTest /> : tool === 'words' ? <WordBaseScreen /> : <PatternBaseScreen />}
+      </div>
+    )
+  }
   return (
     <div>
       <h2 className="section-title">Mikrofon: głoski SZ</h2>
-      <p className="section-sub">{TABS.find(t => t.id === tab).sub}</p>
-      <div className="type-selector">
-        {TABS.map(t => (
-          <button key={t.id} className={`type-btn ${tab === t.id ? 'active' : ''}`} onClick={() => setTab(t.id)}>{t.label}</button>
-        ))}
-      </div>
-      {tab === 'cal' ? <QuickMicCalibration /> : tab === 'test' ? <QuickTest /> : tab === 'words' ? <WordBaseScreen /> : <PatternBaseScreen />}
+      <p className="section-sub">Żeby gry oceniały głoski, wystarczy przejść kroki poniżej. Reszta jest dodatkiem.</p>
+      <QuickMicCalibration />
+      <button className="btn btn-ghost btn-full" style={{ marginTop: 12 }} onClick={() => setOpen(o => !o)} data-advanced>
+        {open ? 'Zaawansowane ▲' : 'Zaawansowane ▼'}
+      </button>
+      {open && ADVANCED.map(t => (
+        <div key={t.id} className="card" style={{ marginTop: 8, display: 'flex', gap: 10, alignItems: 'center' }}>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontWeight: 800, fontSize: 15 }}>{t.label}</div>
+            <div className="text-muted" style={{ fontSize: 12, lineHeight: 1.4 }}>{t.what}</div>
+            <div style={{ fontSize: 11, fontWeight: 800, color: 'var(--muted)', marginTop: 3 }}>{t.saves}</div>
+          </div>
+          <button className="btn btn-outline btn-sm" onClick={() => setTool(t.id)} data-tool={t.id}>Otwórz</button>
+        </div>
+      ))}
     </div>
   )
 }
