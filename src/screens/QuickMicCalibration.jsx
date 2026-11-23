@@ -59,6 +59,8 @@ export default function QuickMicCalibration() {
   const [level, setLevel] = useState(0)
   const [fails, setFails] = useState(0)
   const [count, setCount] = useState(3)
+  const [okMsg, setOkMsg] = useState('')
+  const [hearing, setHearing] = useState(false)
   const [note, setNote] = useState('')            // komunikat na ekranie głównym po zakończonym kroku
   const [bad, setBad] = useState(null)            // nieudany pomiar kroku 2 (nie zapisany)
   const [saved, setSaved] = useState(getQuickProfile())
@@ -135,7 +137,23 @@ export default function QuickMicCalibration() {
       }
 
       if (st === 'syll' || st === 'test') {
+        // po zaliczonej sylabie przez chwilę pokazujemy potwierdzenie, dopiero potem następna
+        if (D.holdUntil) {
+          if (now < D.holdUntil) return
+          D.holdUntil = 0; setOkMsg(''); const f = D.afterHold; D.afterHold = null
+          if (f) f()
+          if (stageRef.current === 'syll') { D.reader.reset(); D.waitSince = performance.now() }
+          return
+        }
         const utter = D.reader.poll()
+        setHearing(D.reader.isSpeaking())
+        // głos „słychać” bez przerwy od dawna = tło pokoju jest głośniejsze niż zmierzone → mierzymy ciszę od nowa
+        if (D.reader.isSpeaking()) { if (!D.speakSince) D.speakSince = now } else D.speakSince = 0
+        if (D.speakSince && now - D.speakSince > 5000) {
+          D.speakSince = 0; meter.recalibrate(); D.reader.reset(); D.waitSince = now
+          setFlash('Mierzę ciszę jeszcze raz. Przez sekundę nic nie mówcie.'); holdFlash()
+          return
+        }
         if (!utter) {
           if (!D.reader.isSpeaking() && now - D.waitSince > 6000 && !flashHold.current) {
             setFlash(D.peak >= 4 ? 'Ledwo słyszę. Powiedz głośniej albo bliżej mikrofonu.' : 'Czekam… powiedz to, co na ekranie.')
@@ -157,7 +175,8 @@ export default function QuickMicCalibration() {
           // sylaba ma jedną głoskę: bierzemy najdłuższy odcinek szumu
           const seg = [...segments].sort((a, b) => b.durationMs - a.durationMs)[0]
           for (let k = 0; k < SYLLABLE_WEIGHT; k++) D[item.cls].push(seg.cog)
-          nextSyllable(i)
+          setFlash(''); setOkMsg(`✓ „${item.say}” złapane`)
+          D.holdUntil = now + 900; D.afterHold = () => nextSyllable(i)
         } else {
           const word = queueRef.current[i]
           const v = judgeUtterance(segments, parseSibilants(word), D.profile, 'normal').verdict
@@ -375,9 +394,11 @@ export default function QuickMicCalibration() {
           ? <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', justifyContent: 'center', margin: '6px 0' }}>{TEST_WORDS.map(w => <Chip key={w} w={w} res={words[w]} current={w === list[idx]} />)}</div>
           : <div className="progress-wrap dark"><div className="progress-fill colored" style={{ width: `${(idx / list.length) * 100}%` }} /></div>}
         <LevelBar db={level} />
-        <div style={{ minHeight: 40, marginTop: 6, fontWeight: 700, fontSize: 14, lineHeight: 1.4, color: flash ? 'var(--orange)' : 'var(--muted)' }} data-flash>
-          {flash || 'Powiedz raz, wyraźnie. Słucham…'}
+        <div style={{ minHeight: 44, marginTop: 6, fontWeight: 700, fontSize: okMsg ? 20 : 14, lineHeight: 1.4,
+          color: okMsg ? 'var(--green)' : flash ? 'var(--orange)' : hearing ? 'var(--primary)' : 'var(--muted)' }} data-flash>
+          {okMsg || flash || (hearing ? 'Słyszę Cię…' : 'Powiedz raz, wyraźnie. Czekam…')}
         </div>
+        <div className="text-muted" style={{ fontSize: 12 }}>Gdy nikt nie mówi, pasek ma być pusty. Zielony w ciszy oznacza hałas w pokoju.</div>
         {fails >= 2 && <button className="btn btn-outline btn-full" onClick={skipItem} data-skip>Pomiń {stage === 'syll' ? 'tę sylabę' : 'to słowo'}</button>}
         <Stop />
       </div>

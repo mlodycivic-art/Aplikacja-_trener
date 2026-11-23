@@ -155,7 +155,7 @@ export function useSibilantMeter() {
         for (let i = vLo; i <= vHi; i++) { voice += Math.max(0, Math.pow(10, spec[i] / 10) - noise[i] * 1.5); noiseVoice += noise[i] }
 
         // Tło pokoju może się zmienić (albo pierwszy pomiar był nietrafiony). Pilnujemy NAJCICHSZEGO
-        // poziomu z ostatnich 6 s: jeśli przez cały ten czas jest ≥ 3× głośniej albo ciszej niż zapisane tło,
+        // poziomu z ostatnich 10 s: jeśli przez cały ten czas jest ≥ 3× głośniej albo ciszej niż zapisane tło,
         // przesuwamy tło do tego poziomu. Mowa i długie „ssss” mają przerwy, więc ich to nie rusza.
         let raw = 0
         for (let i = vLo; i <= vHi; i++) raw += Math.pow(10, Math.max(-160, spec[i]) / 10)
@@ -164,9 +164,9 @@ export function useSibilantMeter() {
         if (tr) {
           tr.cur = Math.min(tr.cur, raw)
           if (now - tr.curStart >= 500) {
-            tr.buckets.push(tr.cur); if (tr.buckets.length > 12) tr.buckets.shift()
+            tr.buckets.push(tr.cur); if (tr.buckets.length > 20) tr.buckets.shift()
             tr.cur = Infinity; tr.curStart = now
-            if (tr.buckets.length === 12) {
+            if (tr.buckets.length === 20) {
               const floor = Math.min(...tr.buckets), ref = noiseVoice + noiseBand
               if (ref > 0 && floor > 0 && (floor > ref * 3 || floor < ref / 3)) {
                 const k = floor / ref
