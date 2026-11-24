@@ -13,11 +13,12 @@
 import { useEffect, useRef, useState } from 'react'
 import { useSibilantMeter, analyseFrames } from './games/useSibilantMeter'
 import { createUtteranceReader } from './games/utterance'
-import { computeQuickProfile, saveQuickProfile, getQuickProfile } from '../data/patternStore'
+import { computeQuickProfile, saveQuickProfile, getQuickProfile, clearQuickProfile } from '../data/patternStore'
 import { parseSibilants, judgeUtterance } from '../data/sibilants'
 
 const NEED_FRAMES = 90        // ok. 1,5 s czystego szumu
-const VOL_OK_DB = 12          // tyle dB ponad tło uznajemy za dobrą głośność
+const VOL_OK_DB = 15          // tyle dB ponad tło uznajemy za dobrą głośność (głos z 20–30 cm daje 20–35)
+const HISS_MIN_DB = 10        // szum głoski liczymy tylko, gdy jest wyraźnie ponad tłem (nie z telewizora w tle)
 const VOL_NEED_MS = 900       // przez tyle czasu głos ma być wystarczająco głośny
 const SUSTAIN = {
   s:  { say: 'ssssss',   hint: 'Zęby razem, uśmiech, język za dolnymi zębami. Syczymy jak wąż.' },
@@ -34,12 +35,12 @@ const pct = (v) => `${Math.round(v * 100)}%`
 
 // Pasek głośności: zielona strefa = dobrze słychać
 function LevelBar({ db }) {
-  const w = Math.max(0, Math.min(1, db / 30))
+  const w = Math.max(0, Math.min(1, db / 36))
   const ok = db >= VOL_OK_DB
   return (
     <div style={{ margin: '10px 0 4px' }} data-level={Math.round(db)}>
       <div style={{ position: 'relative', height: 14, borderRadius: 7, background: 'var(--soft)', overflow: 'hidden', border: '1px solid var(--border)' }}>
-        <div style={{ position: 'absolute', left: `${(VOL_OK_DB / 30) * 100}%`, right: 0, top: 0, bottom: 0, background: 'rgba(34,197,94,.18)' }} />
+        <div style={{ position: 'absolute', left: `${(VOL_OK_DB / 36) * 100}%`, right: 0, top: 0, bottom: 0, background: 'rgba(34,197,94,.18)' }} />
         <div style={{ width: `${w * 100}%`, height: '100%', background: ok ? 'var(--green)' : 'var(--orange)', transition: 'width .08s linear' }} />
       </div>
       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>
@@ -83,7 +84,7 @@ export default function QuickMicCalibration() {
       const now = performance.now()
       if (st === 'home' || st === 'result' || st === 'error' || st === 'judge') return
       if (st === 'noise') {
-        if (meter.getInfo().state === 'on') { D.lastT = now; D.volMs = 0; D.waitSince = now; setStage('vol') }
+        if (meter.getInfo().state === 'on') { D.lastT = now; D.volMs = 0; D.loudStart = 0; D.calmMs = 0; D.waitSince = now; setStage('vol') }
         else if (meter.getInfo().state === 'error') { meter.stop(); setStage('error') }
         return
       }
@@ -96,10 +97,25 @@ export default function QuickMicCalibration() {
       D.peak = Math.max(D.peak, lv)
 
       if (st === 'vol') {
-        for (const f of frames) { if (f.t <= D.lastT) continue; const dt = Math.min(60, f.t - D.lastT); D.lastT = f.t; if ((f.lvl || 0) >= VOL_OK_DB) D.volMs += dt }
+        // Zaliczamy dopiero, gdy głos był głośny ORAZ potem ucichł (ktoś powiedział zdanie i skończył).
+        // Stały hałas, który nagle zrobił się głośniejszy, nie cichnie od razu, więc sam kroku nie przejdzie.
+        for (const f of frames) {
+          if (f.t <= D.lastT) continue
+          const dt = Math.min(60, f.t - D.lastT); D.lastT = f.t
+          const l = f.lvl || 0
+          if (l >= VOL_OK_DB) { if (!D.loudStart) D.loudStart = f.t; D.volMs += dt; D.calmMs = 0 }
+          else if (l < 8) D.calmMs = (D.calmMs || 0) + dt
+        }
         setProgress(Math.min(1, D.volMs / VOL_NEED_MS))
-        if (D.volMs >= VOL_NEED_MS) { beginGoal(); return }
-        if (now - D.waitSince > 5000) setFlash(D.peak < 4 ? 'Nic nie słyszę. Sprawdź, czy mikrofon jest włączony, i powiedz głośno.' : 'Za cicho. Usiądź bliżej mikrofonu (20–30 cm) albo mów głośniej.')
+        if (D.volMs >= VOL_NEED_MS && D.calmMs >= 300) { beginGoal(); return }
+        if (D.loudStart && now - D.loudStart > 5000) {
+          // głośno bez przerwy od 5 s = to nie mowa, tylko tło. Mierzymy ciszę od nowa.
+          D.volMs = 0; D.loudStart = 0
+          meter.recalibrate()
+          setFlash('W pokoju zrobiło się głośniej, więc zmierzyłem tło jeszcze raz. Teraz powiedz zdanie.'); holdFlash()
+          setStage('noise'); return
+        } else if (D.calmMs >= 300 && D.volMs < VOL_NEED_MS) { D.volMs = 0; D.loudStart = 0 }
+        if (!flashHold.current && !D.loudStart && now - D.waitSince > 5000) setFlash(D.peak < 4 ? 'Nic nie słyszę. Sprawdź, czy mikrofon jest włączony, i powiedz głośno.' : 'Za cicho. Usiądź bliżej mikrofonu (20–30 cm) albo mów głośniej.')
         return
       }
 
@@ -114,7 +130,7 @@ export default function QuickMicCalibration() {
       if (st === 's' || st === 'sz') {
         const bucket = D[st]
         let got = false
-        for (const f of frames) { if (f.t <= D.lastT) continue; D.lastT = f.t; if (f.hiss) { bucket.push(f.cog); got = true } }
+        for (const f of frames) { if (f.t <= D.lastT) continue; D.lastT = f.t; if (f.hiss && (f.lvl || 0) >= HISS_MIN_DB) { bucket.push(f.cog); got = true } }
         setProgress(Math.min(1, bucket.length / NEED_FRAMES))
         if (got) { D.quietSince = now; setFlash('') }
         else if (now - D.quietSince > 2500) {
@@ -165,6 +181,8 @@ export default function QuickMicCalibration() {
         D.waitSince = now; D.peak = 0
         const i = idxRef.current
         const miss = (msg) => { setFlash(msg); setFails(n => n + 1); holdFlash() }
+        // za cicho = to nie było powiedziane do mikrofonu (szmer, ktoś w tle) — nie zgadujemy z tego głoski
+        if (peak < VOL_OK_DB) { miss('Za cicho. Powtórz głośniej albo bliżej mikrofonu.'); return }
 
         if (st === 'syll') {
           const item = SYLLABLES[i]
@@ -266,8 +284,8 @@ export default function QuickMicCalibration() {
   const wordsOk = wordsDone && agreeCount >= TARGET
   const canSyll = hasThreshold && Array.isArray(saved?.raw?.s)
 
-  const Chip = ({ w, res, current }) => (
-    <span className={`chip ${res ? (res.agree ? 'chip-completed' : 'chip-skipped') : ''}`}
+  const chip = ({ w, res, current }) => (
+    <span key={w} className={`chip ${res ? (res.agree ? 'chip-completed' : 'chip-skipped') : ''}`}
       style={current ? { outline: '2px solid var(--primary)' } : undefined}>
       {w} {res ? (res.agree ? '✓' : '✕') : ''}
     </span>
@@ -313,7 +331,7 @@ export default function QuickMicCalibration() {
               <div style={{ fontWeight: 800, fontSize: 15 }}>{s.title}{s.info ? <span style={{ fontWeight: 600, color: 'var(--muted)' }}> · {s.info}</span> : null}</div>
               <div className="text-muted" style={{ fontSize: 12, lineHeight: 1.4 }}>{s.locked ? (hasThreshold ? 'Powtórz najpierw krok 2 (stary pomiar nie ma danych potrzebnych do sylab).' : 'Najpierw zrób krok 2.') : s.why}</div>
               {s.n === 4 && doneWords.length > 0 && (
-                <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginTop: 6 }}>{TEST_WORDS.map(w => <Chip key={w} w={w} res={savedWords[w]} />)}</div>
+                <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginTop: 6 }}>{TEST_WORDS.map(w => chip({ w, res: savedWords[w] }))}</div>
               )}
             </div>
             {s.go && !s.locked && (
@@ -328,15 +346,23 @@ export default function QuickMicCalibration() {
           {summary.t}
         </div>
         {saved && (
-          <div className="text-muted" style={{ fontSize: 12, marginTop: 8 }}>
-            Zapisane {new Date(saved.date).toLocaleDateString('pl-PL')}: próg {saved.hz} Hz („s” ≈ {saved.sHz} Hz, „sz” ≈ {saved.szHz} Hz).
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8 }}>
+            <div className="text-muted" style={{ fontSize: 12, flex: 1 }}>
+              Zapisane {new Date(saved.date).toLocaleDateString('pl-PL')}: próg {saved.hz} Hz („s” ≈ {saved.sHz} Hz, „sz” ≈ {saved.szHz} Hz).
+            </div>
+            <button className="btn btn-sm" style={{ background: '#FEF2F2', color: 'var(--red)' }} data-clear onClick={() => {
+              if (!window.confirm('Skasować zapisaną kalibrację mikrofonu na tym urządzeniu? Gry przestaną oceniać głoski do czasu nowej kalibracji.')) return
+              clearQuickProfile(); setSaved(null); setWords({}); setNote('Kalibracja skasowana. Zacznij od kroku 2.')
+            }}>Skasuj kalibrację</button>
           </div>
         )}
       </div>
     )
   }
 
-  const Stop = () => <button className="btn btn-ghost btn-full mt-12" onClick={() => goHome()}>Przerwij i wróć do kroków</button>
+  // Zwykły element, nie komponent tworzony w środku: ekran odświeża się kilkanaście razy na sekundę (pasek głośności)
+  // i przycisk-komponent był za każdym razem tworzony od nowa, przez co „gubił” kliknięcia.
+  const stopBtn = <button className="btn btn-ghost btn-full mt-12" onClick={() => goHome()} data-stop>Przerwij i wróć do kroków</button>
 
   if (stage === 'noise') return <div className="card" style={{ textAlign: 'center', fontWeight: 800, fontSize: 18 }}>Cisza przez sekundę. Słucham pokoju…</div>
 
@@ -349,7 +375,7 @@ export default function QuickMicCalibration() {
         <LevelBar db={level} />
         <div className="progress-wrap dark" style={{ height: 8, marginTop: 8 }}><div className="progress-fill colored" style={{ width: `${progress * 100}%` }} /></div>
         <div style={{ minHeight: 22, marginTop: 10, fontWeight: 700, fontSize: 14, color: 'var(--orange)' }} data-flash>{flash}</div>
-        <Stop />
+        {stopBtn}
       </div>
     )
   }
@@ -363,7 +389,7 @@ export default function QuickMicCalibration() {
         <div style={{ fontSize: 40, fontWeight: 800, letterSpacing: 2, color: 'var(--blue)' }}>szszszsz</div>
         <p className="text-muted" style={{ fontSize: 14, margin: '6px 0' }}>{SUSTAIN.sz.hint}</p>
         <div style={{ fontSize: 44, fontWeight: 800, color: 'var(--primary)' }} data-count>{count}</div>
-        <Stop />
+        {stopBtn}
       </div>
     )
   }
@@ -381,7 +407,7 @@ export default function QuickMicCalibration() {
         <div className="text-muted" style={{ fontSize: 13, marginTop: 6 }}>Cel: pasek do końca. Rośnie tylko wtedy, gdy słyszę szum głoski. Można brać oddech.</div>
         <LevelBar db={level} />
         <div style={{ minHeight: 22, marginTop: 6, fontWeight: 700, fontSize: 14, color: 'var(--orange)' }} data-flash>{flash}</div>
-        <Stop />
+        {stopBtn}
       </div>
     )
   }
@@ -393,7 +419,7 @@ export default function QuickMicCalibration() {
         <div className="form-label">{stage === 'syll' ? 'Krok 3 · sylaby' : 'Krok 4 · słowa'} · {idx + 1} z {list.length}</div>
         <div style={{ fontSize: 52, fontWeight: 800, letterSpacing: 1, color: 'var(--primary)', margin: '4px 0' }} data-say>{list[idx]}</div>
         {stage === 'test'
-          ? <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', justifyContent: 'center', margin: '6px 0' }}>{TEST_WORDS.map(w => <Chip key={w} w={w} res={words[w]} current={w === list[idx]} />)}</div>
+          ? <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', justifyContent: 'center', margin: '6px 0' }}>{TEST_WORDS.map(w => chip({ w, res: words[w], current: w === list[idx] }))}</div>
           : <div className="progress-wrap dark"><div className="progress-fill colored" style={{ width: `${(idx / list.length) * 100}%` }} /></div>}
         <LevelBar db={level} />
         <div style={{ minHeight: 44, marginTop: 6, fontWeight: 700, fontSize: okMsg ? 20 : 14, lineHeight: 1.4,
@@ -402,7 +428,7 @@ export default function QuickMicCalibration() {
         </div>
         <div className="text-muted" style={{ fontSize: 12 }}>Gdy nikt nie mówi, pasek ma być pusty. Zielony w ciszy oznacza hałas w pokoju.</div>
         {fails >= 2 && <button className="btn btn-outline btn-full" onClick={skipItem} data-skip>Pomiń {stage === 'syll' ? 'tę sylabę' : 'to słowo'}</button>}
-        <Stop />
+        {stopBtn}
       </div>
     )
   }
@@ -442,7 +468,7 @@ export default function QuickMicCalibration() {
   return (
     <div className="card" style={{ borderLeft: `5px solid ${wordsOk ? 'var(--green)' : 'var(--yellow)'}` }}>
       <div style={{ fontWeight: 800, fontSize: 18 }} data-result>Zgodność: {agreeCount} z {TEST_WORDS.length} słów · cel {TARGET}</div>
-      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', margin: '10px 0' }}>{TEST_WORDS.map(w => <Chip key={w} w={w} res={savedWords[w]} />)}</div>
+      <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', margin: '10px 0' }}>{TEST_WORDS.map(w => chip({ w, res: savedWords[w] }))}</div>
       <p className="text-muted" style={{ fontSize: 14, margin: '0 0 12px', lineHeight: 1.55 }}>
         {wordsOk ? `Cel osiągnięty: aplikacja ocenia tak jak Ty. Kalibracja jest pełna.${toRepeat.length ? ' Słowo z ✕ możecie jeszcze powtórzyć.' : ''}`
           : `✓ = aplikacja oceniła tak samo jak Ty. Zaliczone słowa zostają. Powtórzcie tylko: ${toRepeat.join(', ')}.`}

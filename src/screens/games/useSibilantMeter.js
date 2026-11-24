@@ -135,7 +135,7 @@ export function useSibilantMeter() {
           for (let i = 0; i < nBins; i++) noise[i] = cal.sum[i] / cal.n
           for (let i = lo; i <= hi; i++) band += noise[i]
           noiseRef.current = noise
-          trackRef.current = { buckets: [], cur: Infinity, curStart: now }
+          trackRef.current = { floor: 0, smooth: 0, lastT: 0 }
           infoRef.current = { ...infoRef.current, state: 'on', noiseDb: Math.round(10 * Math.log10(band + 1e-20)) }
         }
       } else if (infoRef.current.state === 'on') {
@@ -154,27 +154,25 @@ export function useSibilantMeter() {
         let noiseVoice = 0
         for (let i = vLo; i <= vHi; i++) { voice += Math.max(0, Math.pow(10, spec[i] / 10) - noise[i] * 1.5); noiseVoice += noise[i] }
 
-        // Tło pokoju może się zmienić (albo pierwszy pomiar był nietrafiony). Pilnujemy NAJCICHSZEGO
-        // poziomu z ostatnich 10 s: jeśli przez cały ten czas jest ≥ 3× głośniej albo ciszej niż zapisane tło,
-        // przesuwamy tło do tego poziomu. Mowa i długie „ssss” mają przerwy, więc ich to nie rusza.
+        // Tło pokoju się zmienia (ktoś rozmawia dalej, gra telewizor, a Safari po włączeniu mikrofonu
+        // przez parę sekund podaje dźwięk ciszej niż potem). Dlatego poziom tła ŚLEDZIMY cały czas:
+        //   • w dół idzie od razu (zrobiło się ciszej),
+        //   • w górę pełznie powoli, ok. 1,5 dB na sekundę.
+        // Słowo czy kilkusekundowe „ssss” z bliska jest o 20–30 dB głośniejsze od tła, więc ich to nie
+        // „zjada”, a stały hałas przestaje udawać głos po kilku sekundach.
         let raw = 0
         for (let i = vLo; i <= vHi; i++) raw += Math.pow(10, Math.max(-160, spec[i]) / 10)
         for (let i = lo; i <= hi; i++) raw += Math.pow(10, Math.max(-160, spec[i]) / 10)
         const tr = trackRef.current
-        if (tr) {
-          tr.cur = Math.min(tr.cur, raw)
-          if (now - tr.curStart >= 500) {
-            tr.buckets.push(tr.cur); if (tr.buckets.length > 20) tr.buckets.shift()
-            tr.cur = Infinity; tr.curStart = now
-            if (tr.buckets.length === 20) {
-              const floor = Math.min(...tr.buckets), ref = noiseVoice + noiseBand
-              if (ref > 0 && floor > 0 && (floor > ref * 3 || floor < ref / 3)) {
-                const k = floor / ref
-                for (let i = 0; i < nBins; i++) noise[i] *= k
-                tr.buckets = []
-              }
-            }
-          }
+        const ref = noiseVoice + noiseBand
+        if (tr && ref > 0 && raw > 0) {
+          const dt = Math.min(100, now - (tr.lastT || now)); tr.lastT = now
+          tr.smooth = tr.smooth ? tr.smooth + (raw - tr.smooth) * Math.min(1, dt / 200) : raw   // wygładzenie ~0,2 s
+          if (!tr.floor) tr.floor = ref
+          if (tr.smooth < tr.floor) tr.floor += (tr.smooth - tr.floor) * Math.min(1, dt / 150)
+          else tr.floor *= Math.pow(10, (1.5 * dt / 1000) / 10)
+          const k = tr.floor / ref
+          if (k > 1.25 || k < 0.8) { for (let i = 0; i < nBins; i++) noise[i] *= k }
         }
 
         const hiss = band > noiseBand * HISS_OVER_NOISE && band > voice * HISS_OVER_VOICE

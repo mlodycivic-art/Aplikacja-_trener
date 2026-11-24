@@ -105,6 +105,8 @@ export function saveQuickProfile(profile) {
   } catch (e) {}
   window.dispatchEvent(new Event(EVENT))
 }
+export function clearQuickProfile() { try { localStorage.removeItem(QUICK_KEY) } catch (e) {} }
+
 export function getQuickProfile() {
   try { const t = JSON.parse(localStorage.getItem(QUICK_KEY) || 'null'); return t && typeof t.hz === 'number' ? t : null } catch (e) { return null }
 }
