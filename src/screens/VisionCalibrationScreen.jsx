@@ -4,6 +4,7 @@ import VisionWizard from './vision/VisionWizard'
 import QuickFaceCalibration from './vision/QuickFaceCalibration'
 import FaceMapCalibration from './vision/FaceMapCalibration'
 import { SetupDiagram } from './vision/SetupCheck'
+import JawGauge from './vision/JawGauge'
 import { getSetupMode, setSetupMode } from '../data/setupCheck'
 import { AGE_GROUPS } from './vision/ageProfiles'
 
@@ -125,6 +126,7 @@ export default function VisionCalibrationScreen({ exercises }) {
       {!selectedId && <SetupModeCard />}
       {!selectedId && <FaceMapCalibration />}
       {!selectedId && <QuickFaceCalibration />}
+      {!selectedId && <JawGauge calibrate />}
 
       {!selectedId && (
         <>

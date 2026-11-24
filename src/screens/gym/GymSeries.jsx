@@ -3,6 +3,7 @@
 // Przed każdym ćwiczeniem: nazwa i wskazówka czytane wolniej (jeśli głos włączony), potem odliczanie 3-2-1 i dopiero start.
 
 import { useEffect, useMemo, useRef, useState } from 'react'
+import JawGauge from '../vision/JawGauge'
 import { FacePair, usePoseLoop, poseAt } from './FaceRig'
 import { buildRun, stageName, normalizeGym } from '../../data/gymExercises'
 import { speak, plural } from '../../data/voice'
@@ -160,6 +161,8 @@ export default function GymSeries({ exercise, onComplete }) {
         <button className="btn btn-primary" style={{ flex: 1 }} disabled={phase !== 'run'} onClick={() => setPaused(v => !v)} data-act="gym-pause">{paused ? 'Wznów' : 'Pauza'}</button>
         <button className="btn btn-ghost" style={{ flex: 1 }} onClick={skip} data-act="gym-skip">Dalej</button>
       </div>
+      {/* Winda: podgląd miarki otwarcia buzi (kamera włączana ręcznie; na razie niczego nie zalicza) */}
+      {next.id === 'lift' && <JawGauge />}
     </div>
   )
 }
