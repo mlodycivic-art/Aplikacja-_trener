@@ -17,7 +17,7 @@ import { computeQuickProfile, saveQuickProfile, getQuickProfile, clearQuickProfi
 import { parseSibilants, judgeUtterance } from '../data/sibilants'
 
 const NEED_FRAMES = 90        // ok. 1,5 s czystego szumu
-const VOL_OK_DB = 15          // tyle dB ponad tło uznajemy za dobrą głośność (głos z 20–30 cm daje 20–35)
+const VOL_OK_DB = 15          // tyle dB ponad tło uznajemy za dobrą głośność (głos z 40–50 cm daje 20–35)
 const HISS_MIN_DB = 10        // szum głoski liczymy tylko, gdy jest wyraźnie ponad tłem (nie z telewizora w tle)
 const VOL_NEED_MS = 900       // przez tyle czasu głos ma być wystarczająco głośny
 const SUSTAIN = {
@@ -45,6 +45,50 @@ function LevelBar({ db }) {
       </div>
       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--muted)', marginTop: 2 }}>
         <span>cicho</span><span>dobrze słychać</span>
+      </div>
+    </div>
+  )
+}
+
+// Rysunek stanowiska do kalibracji mikrofonu (widok z boku) — ten sam układ co przy kamerze:
+// dziecko siedzi tak, jak potem będzie ćwiczyć. Fale dźwięku idą od ust do urządzenia.
+export function MicSetupDiagram() {
+  const wave = (x, delay) => (
+    <path d={`M${x} 34 Q${x + 9} 46 ${x} 58`} fill="none" stroke="var(--primary)" strokeWidth="2.5" strokeLinecap="round" opacity="0">
+      <animate attributeName="opacity" values="0;1;0" dur="1.6s" begin={`${delay}s`} repeatCount="indefinite" />
+    </path>
+  )
+  return (
+    <div style={{ margin: '4px 0 12px' }}>
+      <svg viewBox="0 0 320 170" width="100%" style={{ maxWidth: 420, display: 'block', margin: '0 auto' }} aria-label="Jak usiąść do kalibracji mikrofonu">
+        <defs>
+          <linearGradient id="mdDesk" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#D6A56A" /><stop offset="1" stopColor="#8B5E34" /></linearGradient>
+        </defs>
+        <rect x="0" y="150" width="320" height="6" fill="var(--border)" />
+        {/* biurko i urządzenie na podstawce */}
+        <rect x="150" y="96" width="150" height="9" rx="3" fill="url(#mdDesk)" /><rect x="286" y="105" width="7" height="45" fill="#8B5E34" /><rect x="158" y="105" width="7" height="45" fill="#8B5E34" />
+        <rect x="222" y="60" width="6" height="36" fill="var(--muted)" /><rect x="208" y="92" width="34" height="5" rx="2" fill="var(--muted)" />
+        <rect x="212" y="26" width="26" height="44" rx="4" fill="var(--ink)" stroke="var(--primary)" strokeWidth="2" />
+        {/* mikrofon w urządzeniu */}
+        <circle cx="212" cy="46" r="4.5" fill="var(--green)"><animate attributeName="r" values="4;6;4" dur="1.6s" repeatCount="indefinite" /></circle>
+        {/* dziecko na krześle, twarzą do urządzenia */}
+        <circle cx="96" cy="46" r="17" fill="var(--soft)" stroke="var(--text)" strokeWidth="2.5" />
+        <path d="M110 50 q5 2 0 5" fill="none" stroke="var(--text)" strokeWidth="2" strokeLinecap="round" />
+        <path d="M96 63 L96 112 L140 112 L140 150 M96 78 L128 92" fill="none" stroke="var(--text)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+        <path d="M76 70 L76 118 L132 118 M80 118 L80 150 M128 118 L128 150" fill="none" stroke="var(--muted)" strokeWidth="4" strokeLinecap="round" />
+        {/* fale głosu od ust do mikrofonu */}
+        {wave(124, 0)}{wave(146, 0.3)}{wave(168, 0.6)}{wave(190, 0.9)}
+        <path d="M118 74 L206 74" stroke="var(--primary)" strokeWidth="2" strokeDasharray="5 4" />
+        <text x="162" y="88" textAnchor="middle" fontSize="12" fontWeight="800" fill="var(--primary)">40–50 cm</text>
+        {/* cisza w pokoju: przekreślony głośnik */}
+        <g transform="translate(262 20)" stroke="var(--muted)" strokeWidth="2.2" fill="none" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M0 8 h6 l8 -7 v22 l-8 -7 h-6 z" fill="var(--soft)" /><path d="M20 6 q5 6 0 12" /><path d="M-4 26 L30 -2" stroke="var(--red)" strokeWidth="2.8" />
+        </g>
+        <text x="281" y="62" textAnchor="middle" fontSize="10" fontWeight="700" fill="var(--muted)">cisza w pokoju</text>
+      </svg>
+      <div className="text-muted" style={{ fontSize: 13, lineHeight: 1.5, marginTop: 6 }}>
+        Dziecko siedzi tak samo jak przy ćwiczeniach: krzesło przy biurku, plecy podparte, twarz na wprost urządzenia,
+        40–50 cm od niego. Mówi w stronę ekranu, nie w bok. Telewizor i radio wyłączone, okno zamknięte.
       </div>
     </div>
   )
@@ -115,7 +159,7 @@ export default function QuickMicCalibration() {
           setFlash('W pokoju zrobiło się głośniej, więc zmierzyłem tło jeszcze raz. Teraz powiedz zdanie.'); holdFlash()
           setStage('noise'); return
         } else if (D.calmMs >= 300 && D.volMs < VOL_NEED_MS) { D.volMs = 0; D.loudStart = 0 }
-        if (!flashHold.current && !D.loudStart && now - D.waitSince > 5000) setFlash(D.peak < 4 ? 'Nic nie słyszę. Sprawdź, czy mikrofon jest włączony, i powiedz głośno.' : 'Za cicho. Usiądź bliżej mikrofonu (20–30 cm) albo mów głośniej.')
+        if (!flashHold.current && !D.loudStart && now - D.waitSince > 5000) setFlash(D.peak < 4 ? 'Nic nie słyszę. Sprawdź, czy mikrofon jest włączony, i powiedz głośno.' : 'Za cicho. Usiądź bliżej mikrofonu (40–50 cm) albo mów głośniej.')
         return
       }
 
@@ -315,9 +359,10 @@ export default function QuickMicCalibration() {
       <div className="card">
         <div style={{ fontWeight: 800, fontSize: 18 }}>Kalibracja mikrofonu krok po kroku</div>
         <p className="text-muted" style={{ fontSize: 14, margin: '6px 0 12px', lineHeight: 1.55 }}>
-          Mówi dziecko, dorosły siedzi obok. Cichy pokój, usta 20–30 cm od mikrofonu, na urządzeniu, na którym będą gry.
+          Mówi dziecko, dorosły siedzi obok. Cichy pokój, na urządzeniu, na którym będą gry.
           Każdy krok zapisuje się od razu, więc można przerwać i wrócić później.
         </p>
+        <MicSetupDiagram />
         {note && <div style={{ padding: '8px 12px', borderRadius: 10, background: 'var(--active-bg)', fontWeight: 700, fontSize: 14, marginBottom: 10 }} data-note>{note}</div>}
         {stage === 'error' && <div style={{ color: 'var(--red)', fontWeight: 700, marginBottom: 10 }}>Mikrofon nie działa albo nie oddaje dźwięku. Zezwól na mikrofon w przeglądarce, sprawdź w ustawieniach systemu, który mikrofon jest wybrany, i spróbuj ponownie.</div>}
 
