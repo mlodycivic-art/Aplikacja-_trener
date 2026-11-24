@@ -111,6 +111,40 @@ export function getQuickProfile() {
   try { const t = JSON.parse(localStorage.getItem(QUICK_KEY) || 'null'); return t && typeof t.hz === 'number' ? t : null } catch (e) { return null }
 }
 
+// ── Wzorzec strojony na słuch (ekran „Wzorzec”) ─────────────────────────────
+// Dla każdego słowa z listy: nagranie dziecka, ewentualnie przestrojone pokrętłem do czystego brzmienia,
+// i odczytana z niego wysokość szumu głoski. Z tego powstają dwa zakresy: „sz/cz” i „s/c”.
+const REFERENCE_KEY = 'stc_sz_reference'
+export const REFERENCE_WORDS = [
+  { word: 'szafa', sound: 'sz', cls: 'sz', pos: 'początek' }, { word: 'kasza', sound: 'sz', cls: 'sz', pos: 'środek' }, { word: 'kosz', sound: 'sz', cls: 'sz', pos: 'koniec' },
+  { word: 'czapka', sound: 'cz', cls: 'sz', pos: 'początek' }, { word: 'oczy', sound: 'cz', cls: 'sz', pos: 'środek' }, { word: 'klucz', sound: 'cz', cls: 'sz', pos: 'koniec' },
+  { word: 'sowa', sound: 's', cls: 's', pos: 'początek' }, { word: 'kasa', sound: 's', cls: 's', pos: 'środek' }, { word: 'nos', sound: 's', cls: 's', pos: 'koniec' },
+  { word: 'cebula', sound: 'c', cls: 's', pos: 'początek' }, { word: 'taca', sound: 'c', cls: 's', pos: 'środek' }, { word: 'koc', sound: 'c', cls: 's', pos: 'koniec' },
+]
+export function getReference() {
+  try { const r = JSON.parse(localStorage.getItem(REFERENCE_KEY) || 'null'); return r && r.words ? r : { words: {}, active: false } } catch (e) { return { words: {}, active: false } }
+}
+export function saveReference(ref) { try { localStorage.setItem(REFERENCE_KEY, JSON.stringify({ ...ref, date: new Date().toISOString() })) } catch (e) {} }
+export function clearReference() { try { localStorage.removeItem(REFERENCE_KEY) } catch (e) {} }
+
+// Zakresy i próg z zapisanych słów. quality 'good' = po min. 2 słowa z każdej grupy i odstęp ≥ 400 Hz.
+export function referenceSummary(ref = getReference()) {
+  const med = (a) => { const s = [...a].sort((x, y) => x - y); return s.length ? (s.length % 2 ? s[(s.length - 1) / 2] : (s[s.length / 2 - 1] + s[s.length / 2]) / 2) : null }
+  const of = (cls) => REFERENCE_WORDS.filter(w => w.cls === cls && ref.words[w.word]?.targetHz).map(w => ref.words[w.word].targetHz)
+  const sz = of('sz'), s = of('s')
+  const out = {
+    sz: sz.length ? { min: Math.min(...sz), max: Math.max(...sz), med: Math.round(med(sz)), n: sz.length } : null,
+    s: s.length ? { min: Math.min(...s), max: Math.max(...s), med: Math.round(med(s)), n: s.length } : null,
+    done: sz.length + s.length, total: REFERENCE_WORDS.length,
+  }
+  if (out.sz && out.s) {
+    out.gap = out.s.med - out.sz.med
+    out.hz = Math.round((out.s.med + out.sz.med) / 2)
+    out.quality = sz.length >= 2 && s.length >= 2 && out.gap >= MIN_GAP_HZ ? 'good' : out.gap < MIN_GAP_HZ ? 'narrow' : 'few'
+  }
+  return out
+}
+
 // Próg obowiązujący na tym urządzeniu albo null.
 // Kolejność: pewny próg z bazy wzorców (oceniony przez logopedę) → pewny próg z szybkiej kalibracji
 // → cokolwiek niepewnego (tylko do podglądu; classifyValue ocenia wyłącznie przy jakości 'good').
@@ -118,6 +152,12 @@ export function getThreshold() {
   let base = null
   try { const t = JSON.parse(localStorage.getItem(THRESHOLD_KEY) || 'null'); base = t && typeof t.hz === 'number' ? { ...t, source: 'base' } : null } catch (e) {}
   const quick = getQuickProfile()
+  // wzorzec strojony na słuch ma pierwszeństwo, ale tylko gdy dorosły go włączył („Użyj w grach”)
+  const ref = getReference()
+  if (ref.active) {
+    const r = referenceSummary(ref)
+    if (r.quality === 'good') return { hz: r.hz, gap: r.gap, sHz: r.s.med, szHz: r.sz.med, quality: 'good', source: 'reference', date: ref.date }
+  }
   if (base && base.quality === 'good') return base
   if (quick && quick.quality === 'good') return quick
   return base || quick || null

@@ -7,6 +7,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useSibilantMeter, pairVerdict, BAND_LO_HZ } from './games/useSibilantMeter'
 import PatternBaseScreen from './PatternBaseScreen'
+import ReferenceTuner from './ReferenceTuner'
 import QuickMicCalibration from './QuickMicCalibration'
 import WordBaseScreen from './WordBaseScreen'
 
@@ -331,6 +332,9 @@ function QuickTest() {
 //  - Baza wzorców: trwałe nagrania słów oceniane przez logopedę → dokładniejszy próg.
 // Główna ścieżka to kalibracja krok po kroku. Reszta to narzędzia dodatkowe, schowane pod „Zaawansowane”.
 const ADVANCED = [
+  { id: 'ref', label: 'Wzorzec (strojenie na słuch)', saves: 'Zapisuje wzorcową wysokość głosek (same liczby, bez nagrań)',
+    what: 'Cel wymowy ustawiony z głosu dziecka: 12 słów z „sz”, „cz”, „s”, „c” na początku, w środku i na końcu.',
+    how: ['Dziecko nagrywa słowo. Słowo gra w pętli, głoska jest zaznaczona na pasku.', 'Brzmi czysto? Kliknij „Brzmi dobrze”. Nie? Pokrętłem „Wysokość” ustaw czyste brzmienie i zapisz.', 'Po kilku słowach powstają zakresy dla „sz/cz” i „s/c”. Można je włączyć jako próg w grach.'] },
   { id: 'test', label: 'Podgląd na żywo', saves: 'Nic się nie zapisuje',
     what: 'Wykres pokazuje na bieżąco, jak mikrofon słyszy głoski: kropki u góry to „s”, na dole „sz”.',
     how: ['Kliknij „Włącz mikrofon”.', 'Powiedz długie „ssss”, potem „szszsz” i patrz, czy kropki zmieniają stronę.', 'Niżej możesz nagrać parę słów (np. socek / soczek) i porównać. To tylko sprawdzenie, wynik znika po wyjściu.'] },
@@ -356,7 +360,7 @@ export default function SibilantTestScreen() {
           <ol style={{ margin: '8px 0 0 18px', fontSize: 13, lineHeight: 1.6 }}>{cur.how.map((h, i) => <li key={i}>{h}</li>)}</ol>
           <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--muted)', marginTop: 8 }}>{cur.saves}</div>
         </div>
-        {tool === 'test' ? <QuickTest /> : tool === 'words' ? <WordBaseScreen /> : <PatternBaseScreen />}
+        {tool === 'ref' ? <ReferenceTuner /> : tool === 'test' ? <QuickTest /> : tool === 'words' ? <WordBaseScreen /> : <PatternBaseScreen />}
       </div>
     )
   }
