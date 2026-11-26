@@ -7,12 +7,13 @@
 import { useEffect, useRef, useState } from 'react'
 import { useSibilantMeter, pairVerdict, BAND_LO_HZ } from './games/useSibilantMeter'
 import PatternBaseScreen from './PatternBaseScreen'
+import SoundProfile from './SoundProfile'
 import ReferenceTuner from './ReferenceTuner'
 import QuickMicCalibration from './QuickMicCalibration'
 import WordBaseScreen from './WordBaseScreen'
 
-const SCALE_MIN = 2500   // dół wykresu (strona "SZ")
-const SCALE_MAX = 8500   // góra wykresu (strona "S")
+const SCALE_MIN = 2000   // dół wykresu (strona "SZ")
+const SCALE_MAX = 10500  // góra wykresu (strona "S") — wyżej niż dawne 8500, bo wysokie „s” dociskało się do krawędzi
 const TAKE_MAX_MS = 3000 // nagranie jednej próby kończy się samo po 3 s
 const COLOR_S  = '#EA580C'
 const COLOR_SZ = '#2563EB'
@@ -332,6 +333,9 @@ function QuickTest() {
 //  - Baza wzorców: trwałe nagrania słów oceniane przez logopedę → dokładniejszy próg.
 // Główna ścieżka to kalibracja krok po kroku. Reszta to narzędzia dodatkowe, schowane pod „Zaawansowane”.
 const ADVANCED = [
+  { id: 'profile', label: 'Profil głoski i ćwiczenie „Celuj w głoskę”', saves: 'Zapisuje wyniki pomiarów z datą (same liczby)',
+    what: 'Długie „sz” albo „s” na żywo na wykresie: gdzie leży głoska, jak jest stabilna i ile czasu trafia w cel. Do tego ćwiczenie z punktami i wykres postępów.',
+    how: ['Wybierz głoskę i osobę. „Pomiar” zapisuje trzy liczby: położenie, stabilność, trafność.', '„Ćwiczenie”: 6 prób po 3,5 s. Dziecko trzyma kropki w zielonym pasie, punkty lecą za czas w pasie.', 'Dodaj osobę wzorcową (rówieśnik, rodzic, logopeda), zrób jej pomiar i kliknij „Ustaw jako cel”.'] },
   { id: 'ref', label: 'Wzorzec (strojenie na słuch)', saves: 'Zapisuje wzorcową wysokość głosek (same liczby, bez nagrań)',
     what: 'Cel wymowy ustawiony z głosu dziecka: 12 słów z „sz”, „cz”, „s”, „c” na początku, w środku i na końcu.',
     how: ['Dziecko nagrywa słowo. Słowo gra w pętli, głoska jest zaznaczona na pasku.', 'Brzmi czysto? Kliknij „Brzmi dobrze”. Nie? Pokrętłem „Wysokość” ustaw czyste brzmienie i zapisz.', 'Po kilku słowach powstają zakresy dla „sz/cz” i „s/c”. Można je włączyć jako próg w grach.'] },
@@ -360,7 +364,7 @@ export default function SibilantTestScreen() {
           <ol style={{ margin: '8px 0 0 18px', fontSize: 13, lineHeight: 1.6 }}>{cur.how.map((h, i) => <li key={i}>{h}</li>)}</ol>
           <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--muted)', marginTop: 8 }}>{cur.saves}</div>
         </div>
-        {tool === 'ref' ? <ReferenceTuner /> : tool === 'test' ? <QuickTest /> : tool === 'words' ? <WordBaseScreen /> : <PatternBaseScreen />}
+        {tool === 'profile' ? <SoundProfile /> : tool === 'ref' ? <ReferenceTuner /> : tool === 'test' ? <QuickTest /> : tool === 'words' ? <WordBaseScreen /> : <PatternBaseScreen />}
       </div>
     )
   }

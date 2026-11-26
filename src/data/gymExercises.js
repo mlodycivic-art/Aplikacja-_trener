@@ -64,7 +64,7 @@ export const STATIONS = [
     hint: 'Buzia otwarta, czubek języka na środku. Dotknij czubkiem języka jednego zęba i wróć na środek. Tak po kolei: osiem zębów na górze i osiem na dole.',
     keys: countTeethKeys() },
   { id: 'cup', stage: 'tongue', name: 'Koszyczek', reps: 5, cycleMs: 3600,
-    hint: 'Buzia szeroko otwarta. Unieś szeroki język za górne zęby i zawiń jego brzegi do góry, żeby powstał koszyczek. Przytrzymaj.',
+    hint: 'Buzia szeroko otwarta. Szeroki język unieś do połowy buzi, tak żeby niczego nie dotykał, i zawiń jego brzegi do góry jak koszyczek. Przytrzymaj.',
     keys: [{ t: 0, ...OPEN }, { t: 0.15, ...OPEN }, { t: 0.45, ...OPEN, tongueUp: 0.9, tongueCup: 1 }, { t: 0.82, ...OPEN, tongueUp: 0.9, tongueCup: 1 }, { t: 1, ...OPEN }] },
   // ── Podniebienie miękkie ──
   { id: 'yawn', stage: 'palate', name: 'Ziewanie', reps: 3, cycleMs: 4500,

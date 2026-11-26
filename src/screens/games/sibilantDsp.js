@@ -63,6 +63,27 @@ export function cogOf(samples, sr, from = 0, to = samples.length) {
   return band > 0 ? mom / band : 0
 }
 
+// Przebieg wysokości szumu w czasie: jedna kropka na ~5 ms, tylko tam, gdzie w ramce dominuje szum głoski.
+// Zwraca [{ t (s od `from`), hz }].
+export function cogTrack(samples, sr, from = 0, to = samples.length) {
+  const re = new Float32Array(N), im = new Float32Array(N)
+  const fr = []
+  for (let at = Math.max(0, from - N / 2); at + N <= Math.min(samples.length, to + N / 2); at += HOP) fr.push({ at, ...frameStats(samples, at, sr, re, im) })
+  const maxBand = fr.reduce((m, f) => Math.max(m, f.band), 0)
+  return fr.filter(f => f.band > f.low && f.band > maxBand * 0.05).map(f => ({ t: (f.at + N / 2 - from) / sr, hz: f.cog }))
+}
+
+// Obwiednia głośności: jedna wartość na `stepMs` (do rysunku)
+export function envelopeOf(samples, sr, from = 0, to = samples.length, stepMs = 6) {
+  const step = Math.max(1, Math.round((stepMs / 1000) * sr)), out = []
+  for (let s0 = from; s0 < to; s0 += step) {
+    let m = 0
+    for (let k = s0; k < s0 + step && k < to; k += 3) { const v = Math.abs(samples[k]); if (v > m) m = v }
+    out.push(m)
+  }
+  return out
+}
+
 export function analyseBuffer(samples, sr) {
   const re = new Float32Array(N), im = new Float32Array(N)
   const frames = []
@@ -74,7 +95,7 @@ export function analyseBuffer(samples, sr) {
   const noiseTotal = Math.max(1e-12, percentile(frames.map(f => f.total), 0.1))
 
   // słowo = od pierwszej do ostatniej ramki wyraźnie głośniejszej od tła (+ 80 ms zapasu)
-  const loud = (f) => f.total > Math.max(noiseTotal * 8, maxTotal * 0.01)
+  const loud = (f) => f.total > Math.max(noiseTotal * 8, maxTotal * 0.03)
   let a = frames.findIndex(loud), b = frames.length - 1
   while (b > 0 && !loud(frames[b])) b--
   if (a < 0) { a = 0; b = frames.length - 1 }

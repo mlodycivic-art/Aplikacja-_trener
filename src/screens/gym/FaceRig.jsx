@@ -253,6 +253,8 @@ const S = {
   lowerLine: 'M200 242 C199 230 204 220 212 218 C224 218 234 226 234 238 C234 250 224 258 214 258 C208 264 208 270 212 276 C222 290 224 308 212 322 C200 334 170 340 140 344 L134 360',
   tongueLow: 'M92 230 C86 200 106 186 136 188 C160 190 174 198 178 208 C174 222 162 230 144 236 C124 242 102 246 92 230 Z',
   tongueUp: 'M92 230 C82 192 102 156 134 148 C152 142 166 140 176 148 C174 160 160 170 146 180 C126 196 106 242 92 230 Z',
+  // Koszyczek: język „wisi” w połowie buzi — nie dotyka podniebienia ani zębów, czubek na wysokości szpary między zębami
+  tongueCup: 'M92 230 C86 205 90 182 106 177 C128 172 152 171 178 168 C183 173 183 181 179 187 C160 193 140 204 124 216 C112 226 100 238 92 230 Z',
   uvula: 'M98 138 C92 144 90 156 96 162 C100 158 100 148 106 140 Z',
 }
 const SP = Object.fromEntries(Object.entries(S).map(([k, v]) => [k, parse(v)]))
@@ -272,7 +274,8 @@ export function FaceSide({ pose: p, hold = false }) {
   // przy zamkniętej buzi język leży przy podniebieniu (pozycja spoczynkowa); przy otwartej opada, chyba że ćwiczenie go unosi
   const us = Math.max(u, tip * (1 - r) * 0.9, (1 - jaw) * 0.85, hold ? 0.85 : 0)
   const tShift = -Math.abs(clamp(p.tipX, -1, 1)) * 12 * tip
-  const tongue = build(mix(SP.tongueLow, SP.tongueUp, us), (x, y) => { const [a, b] = jd(x, y); return [a + tShift * clamp((x - 120) / 60), b] })
+  const cup = clamp(p.tongueCup)
+  const tongue = build(mix(mix(SP.tongueLow, SP.tongueUp, us), SP.tongueCup, cup), (x, y) => { const [a, b] = jd(x, y); return [a + tShift * clamp((x - 120) / 60), b] })
   const ch = clamp(p.cheek), ht = clamp(p.heart), br = clamp(p.breath)
   const mouthY = 180 - closeAmt * 10
 
@@ -289,7 +292,9 @@ export function FaceSide({ pose: p, hold = false }) {
         <path d={tongue} fill={TONGUE} stroke={OUT} strokeWidth="4" strokeLinejoin="round">
           {hold && <animate attributeName="fill" values={`${TONGUE};#FF2E63;#FF8FB0;${TONGUE}`} keyTimes="0;0.4;0.7;1" dur="1.8s" repeatCount="indefinite" />}
         </path>
-        {p.tongueCup > 0.01 && <path d={build(parse('M108 172 C120 154 140 144 162 142'), jd)} fill="none" stroke="#FF9AB0" strokeWidth="5" strokeLinecap="round" opacity={f1(clamp(p.tongueCup) * u)} />}
+        {/* koszyczek: zawinięty bliższy brzeg (jaśniejszy wałek nad językiem) i wgłębienie w środku */}
+        {cup > 0.01 && <path d={build(parse('M104 172 C124 160 154 158 177 162 C181 164 181 168 178 169 C152 170 126 171 106 177 Z'), jd)} fill="#F7A8BA" stroke={OUT} strokeWidth="3" strokeLinejoin="round" opacity={f1(cup)} />}
+        {cup > 0.01 && <path d={build(parse('M112 184 C130 192 156 188 172 178'), jd)} fill="none" stroke="#B8475F" strokeWidth="3" strokeLinecap="round" opacity={f1(cup * 0.8)} />}
         <path d={S.palate} fill="none" stroke={OUT} strokeWidth="4" strokeLinejoin="round" strokeLinecap="round" />
 
         <path d={build(SP.jawSkin, jd)} fill={SKIN} />

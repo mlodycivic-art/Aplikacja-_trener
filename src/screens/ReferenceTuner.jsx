@@ -13,7 +13,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useSibilantMeter } from './games/useSibilantMeter'
-import { analyseBuffer, renderTuned, cogOf } from './games/sibilantDsp'
+import { analyseBuffer, renderTuned, cogOf, cogTrack, envelopeOf } from './games/sibilantDsp'
 import { REFERENCE_WORDS, getReference, saveReference, clearReference, referenceSummary, getQuickProfile } from '../data/patternStore'
 
 const REC_MS = 2600
@@ -75,22 +75,67 @@ export default function ReferenceTuner() {
     const before = cogOf(take.samples, take.sr, seg.start, seg.end)
     const after = cogOf(r.samples, take.sr, r.segStart, r.segEnd)
     const base = take.liveCogs[segIdx] || Math.round(before)
-    return { ...r, baseHz: base, nowHz: Math.round(base * (before > 0 ? after / before : 1)) }
+    const k = before > 0 ? base / before : 1          // przeliczenie na skalę pomiaru „na żywo” (tę z gier)
+    return {
+      ...r, baseHz: base, nowHz: Math.round(after * k), k,
+      envNow: envelopeOf(r.samples, take.sr), trackNow: cogTrack(r.samples, take.sr, r.segStart, r.segEnd).map(d => ({ t: d.t + r.segStart / take.sr, hz: d.hz * k })),
+      lenNowMs: Math.round(((r.segEnd - r.segStart) / take.sr) * 1000), durNow: r.samples.length / take.sr,
+    }
   }, [take, seg, segIdx, ratio, stretch, original])
 
+  // Oryginał (do porównania na wykresach): obwiednia słowa i przebieg wysokości wybranej głoski
+  const orig = useMemo(() => {
+    if (!take || !seg) return null
+    const before = cogOf(take.samples, take.sr, seg.start, seg.end)
+    const base = take.liveCogs[segIdx] || Math.round(before)
+    const k = before > 0 ? base / before : 1
+    const t0 = (seg.start - take.trim.start) / take.sr
+    return {
+      env: envelopeOf(take.samples, take.sr, take.trim.start, take.trim.end),
+      track: cogTrack(take.samples, take.sr, seg.start, seg.end).map(d => ({ t: d.t + t0, hz: d.hz * k })),
+      segT0: t0, segT1: (seg.end - take.trim.start) / take.sr, lenMs: Math.round(((seg.end - seg.start) / take.sr) * 1000),
+      dur: (take.trim.end - take.trim.start) / take.sr,
+    }
+  }, [take, seg, segIdx])
+
+  const [head, setHead] = useState(null)             // pozycja odtwarzania (s od początku słowa) albo null
+  const [blocked, setBlocked] = useState(false)      // przeglądarka nie puściła dźwięku
   const stopSound = () => { try { audio.current.src?.stop() } catch (e) {} audio.current.src = null }
+  // Safari puszcza dźwięk tylko wtedy, gdy odtwarzanie zostało „odblokowane” PODCZAS kliknięcia.
+  // Dlatego wołamy to bezpośrednio w obsłudze każdego przycisku i pokrętła.
+  const unlockAudio = () => {
+    const ctx = audio.current.ctx || (audio.current.ctx = new (window.AudioContext || window.webkitAudioContext)())
+    try { if (ctx.state !== 'running') ctx.resume() } catch (e) {}
+    try { const b = ctx.createBuffer(1, 1, ctx.sampleRate); const n = ctx.createBufferSource(); n.buffer = b; n.connect(ctx.destination); n.start() } catch (e) {}
+    return ctx
+  }
   const play = () => {
     if (!tuned) return
     stopSound()
-    const ctx = audio.current.ctx || (audio.current.ctx = new (window.AudioContext || window.webkitAudioContext)())
-    try { ctx.resume() } catch (e) {}
+    const ctx = unlockAudio()
     const gapN = Math.round(0.45 * take.sr)                       // przerwa między powtórzeniami
     const buf = ctx.createBuffer(1, tuned.samples.length + gapN, take.sr)
     buf.getChannelData(0).set(tuned.samples)
     const src = ctx.createBufferSource()
     src.buffer = buf; src.loop = true; src.connect(ctx.destination); src.start()
     audio.current.src = src
+    audio.current.t0 = ctx.currentTime; audio.current.loop = buf.duration
   }
+  // znacznik odtwarzania na wykresach + wykrycie, że przeglądarka wstrzymała dźwięk
+  useEffect(() => {
+    if (!playing) { setHead(null); setBlocked(false); return }
+    let raf = 0, started = performance.now()
+    const tick = () => {
+      raf = requestAnimationFrame(tick)
+      const A = audio.current
+      if (!A.ctx || !A.src || !A.loop) return
+      const el = A.ctx.currentTime - A.t0
+      setHead(el >= 0 ? el % A.loop : null)
+      setBlocked(A.ctx.state !== 'running' && performance.now() - started > 800)
+    }
+    raf = requestAnimationFrame(tick)
+    return () => cancelAnimationFrame(raf)
+  }, [playing])
   // po każdej zmianie pokrętła pętla gra od razu nową wersję
   useEffect(() => {
     if (!playing) { stopSound(); return }
@@ -104,6 +149,7 @@ export default function ReferenceTuner() {
   const backToList = () => { setPlaying(false); stopSound(); clearInterval(timer.current); meter.stop(); setTake(null); setStage('list') }
 
   const record = async (it) => {
+    unlockAudio()
     setItem(it); setMsg(''); setPlaying(false); setTake(null); setProgress(0); setStage('wait')
     const ok = await meter.start()
     if (!ok) { setMsg('Brak dostępu do mikrofonu.'); setStage('list'); return }
@@ -142,7 +188,7 @@ export default function ReferenceTuner() {
           else if (it.pos === 'środek') pick = A.segments.reduce((b, s, i) => (s.end - s.start > A.segments[b].end - A.segments[b].start ? i : b), 0)
           setSegIdx(pick); setPitch(toV(1)); setLen(0); setOriginal(false)
           setTake({ samples, sr: decoded.sampleRate, ...A, liveCogs })
-          setStage('tune'); setPlaying(true)
+          setStage('tune'); setPlaying(false)     // odtwarzanie włącza kliknięcie (inaczej Safari nie puści dźwięku)
         } catch (e) {
           setMsg('Nie udało się odczytać nagrania. Spróbuj jeszcze raz.'); setStage('list')
         }
@@ -169,31 +215,22 @@ export default function ReferenceTuner() {
         <div className="form-label">Wzorzec · {item.sound} · {item.pos} słowa</div>
         <div style={{ fontSize: 40, fontWeight: 800, color: 'var(--primary)', textAlign: 'center' }} data-ref-word>{item.word}</div>
 
-        {/* pasek nagrania: kolorowe pole = głoska, którą stroi pokrętło (kliknij inne pole, żeby je wybrać) */}
-        <div style={{ position: 'relative', height: 64, margin: '10px 0 4px', background: 'var(--soft)', borderRadius: 10, overflow: 'hidden' }}>
-          {take.segments.map((s, i) => (
-            <div key={i} onClick={() => setSegIdx(i)} data-seg={i} title="Stroimy tę głoskę"
-              style={{ position: 'absolute', top: 0, bottom: 0, left: `${((s.start - take.trim.start) / total) * 100}%`, width: `${((s.end - s.start) / total) * 100}%`,
-                background: i === segIdx ? 'rgba(99,102,241,.35)' : 'rgba(148,163,184,.3)', borderLeft: '2px solid var(--primary)', borderRight: '2px solid var(--primary)', cursor: 'pointer' }} />
-          ))}
-          <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', gap: 1, padding: '0 2px', pointerEvents: 'none' }}>
-            {take.envelope.map((v, i) => { const m = Math.max(...take.envelope) || 1; return <div key={i} style={{ flex: 1, height: `${Math.max(3, (v / m) * 100)}%`, background: 'var(--text)', opacity: 0.55, borderRadius: 1 }} /> })}
-          </div>
-        </div>
-        <div className="text-muted" style={{ fontSize: 12, textAlign: 'center' }}>
-          Kolorowe pole to głoska „{item.sound}”. Pokrętło zmienia tylko ją.{take.segments.length > 1 ? ' W słowie są dwa szumy: kliknij ten właściwy.' : ''}
-        </div>
+        <TunerCharts take={take} orig={orig} tuned={tuned} segIdx={segIdx} onPick={setSegIdx} head={head} quick={quick} sound={item.sound} />
 
         <div style={{ display: 'flex', gap: 8, margin: '12px 0' }}>
-          <button className={`btn ${playing ? 'btn-outline' : 'btn-primary'}`} style={{ flex: 1 }} onClick={() => setPlaying(p => !p)} data-play>{playing ? '⏸ Zatrzymaj' : '▶ Odtwarzaj w pętli'}</button>
-          <button className={`btn ${original ? 'btn-primary' : 'btn-outline'}`} style={{ flex: 1 }} onClick={() => setOriginal(o => !o)} data-original>{original ? 'Gra: oryginał' : 'Gra: strojone'}</button>
+          <button className={`btn ${playing ? 'btn-outline' : 'btn-primary'}`} style={{ flex: 1 }} onClick={() => { unlockAudio(); setPlaying(p => !p) }} data-play>{playing ? '⏸ Zatrzymaj' : '▶ Odtwarzaj w pętli'}</button>
+          <button className={`btn ${original ? 'btn-primary' : 'btn-outline'}`} style={{ flex: 1 }} onClick={() => { unlockAudio(); setOriginal(o => !o) }} data-original>{original ? 'Gra: oryginał' : 'Gra: strojone'}</button>
         </div>
 
+        <div style={{ textAlign: 'center', fontSize: 13, fontWeight: 800, minHeight: 20, marginBottom: 6, color: blocked ? 'var(--red)' : playing ? 'var(--green)' : 'var(--muted)' }} data-play-state>
+          {blocked ? 'Przeglądarka wstrzymała dźwięk. Kliknij „Zatrzymaj”, a potem „Odtwarzaj w pętli”. Sprawdź też głośność komputera.'
+            : playing ? `● Gra w pętli: ${original ? 'oryginał' : 'wersja strojona'}` : 'Kliknij „Odtwarzaj w pętli”, żeby usłyszeć nagranie.'}
+        </div>
         <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', opacity: original ? 0.45 : 1 }}>
-          <Knob name="pitch" label="Wysokość głoski" value={pitch} onChange={(v) => { setOriginal(false); setPitch(v) }}
-            readout={<span data-now-hz={tuned?.nowHz}>{tuned ? `teraz ok. ${tuned.nowHz} Hz` : ''}</span>} />
-          <Knob name="len" label="Długość głoski" value={len} onChange={(v) => { setOriginal(false); setLen(v) }} color="var(--orange)"
-            readout={`× ${stretch.toFixed(1)}`} />
+          <Knob name="pitch" label="Wysokość głoski" value={pitch} onChange={(v) => { unlockAudio(); setOriginal(false); setPitch(v) }}
+            readout={<span data-now-hz={tuned?.nowHz}>{tuned ? `${tuned.baseHz} → ${tuned.nowHz} Hz` : ''}</span>} />
+          <Knob name="len" label="Długość głoski" value={len} onChange={(v) => { unlockAudio(); setOriginal(false); setLen(v) }} color="var(--orange)"
+            readout={<span data-now-len={tuned?.lenNowMs}>{orig && tuned ? `${orig.lenMs} → ${tuned.lenNowMs} ms` : ''}</span>} />
         </div>
         <div className="text-muted" style={{ fontSize: 12, lineHeight: 1.5, marginTop: 6 }}>
           W lewo: niżej, w stronę „sz/cz”. W prawo: wyżej, w stronę „s/c”. Nagranie przed strojeniem: ok. {tuned?.baseHz} Hz.
@@ -284,3 +321,64 @@ export default function ReferenceTuner() {
 
 // jeden miernik na cały ekran
 function useMeterOnce() { return useSibilantMeter() }
+
+// Dwa wykresy ze wspólną osią czasu:
+//   1. GŁOŚNOŚĆ słowa w czasie (szary = oryginał, kolor = wersja strojona). Pola pokazują, gdzie jest głoska.
+//   2. WYSOKOŚĆ SZUMU głoski w czasie: każda kropka to ok. 5 ms (szare = oryginał, kolorowe = po strojeniu).
+// Pionowa kreska to miejsce, które właśnie gra.
+function TunerCharts({ take, orig, tuned, segIdx, onPick, head, quick, sound }) {
+  if (!orig || !tuned) return null
+  const W = 600, H1 = 90, H2 = 150, PADL = 44
+  const T = Math.max(orig.dur, tuned.durNow, 0.2)
+  const x = (t) => PADL + (t / T) * (W - PADL - 6)
+  const maxEnv = Math.max(...orig.env, ...tuned.envNow, 1e-6)
+  const area = (env, dur) => {
+    if (!env.length) return ''
+    const pts = env.map((v, i) => [x((i / env.length) * dur), (v / maxEnv) * (H1 / 2 - 4)])
+    return 'M' + pts.map(p => `${p[0].toFixed(1)} ${(H1 / 2 - p[1]).toFixed(1)}`).join(' L') + ' L' + pts.reverse().map(p => `${p[0].toFixed(1)} ${(H1 / 2 + p[1]).toFixed(1)}`).join(' L') + ' Z'
+  }
+  const F0 = 2000, F1 = 11000
+  const y = (hz) => 8 + (1 - (Math.max(F0, Math.min(F1, hz)) - F0) / (F1 - F0)) * (H2 - 16)
+  const nowT0 = tuned.segStart / take.sr, nowT1 = tuned.segEnd / take.sr
+  const changed = Math.abs(tuned.nowHz - tuned.baseHz) > 30 || Math.abs(tuned.lenNowMs - orig.lenMs) > 8
+  const headX = head != null && head <= T ? x(head) : null
+  const lines = quick?.quality === 'good' ? [['„s” z kalibracji', quick.sHz, '#EA580C'], ['„sz” z kalibracji', quick.szHz, '#2563EB']] : []
+  return (
+    <div style={{ margin: '10px 0 4px' }} data-tuner-charts>
+      <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--muted)' }}>GŁOŚNOŚĆ SŁOWA W CZASIE</div>
+      <svg viewBox={`0 0 ${W} ${H1}`} width="100%" style={{ display: 'block', background: 'var(--soft)', borderRadius: 10 }}>
+        {take.segments.map((sg, i) => {
+          const a = x((sg.start - take.trim.start) / take.sr), b = x((sg.end - take.trim.start) / take.sr)
+          return <rect key={i} x={a} y="2" width={Math.max(3, b - a)} height={H1 - 4} rx="3" onClick={() => onPick(i)} data-seg={i} style={{ cursor: 'pointer' }}
+            fill={i === segIdx ? 'rgba(148,163,184,.28)' : 'rgba(148,163,184,.12)'} stroke="#94A3B8" strokeWidth="1.5" strokeDasharray="5 4" />
+        })}
+        {changed && <rect x={x(nowT0)} y="2" width={Math.max(3, x(nowT1) - x(nowT0))} height={H1 - 4} rx="3" fill="rgba(99,102,241,.22)" stroke="#6366F1" strokeWidth="2" pointerEvents="none" />}
+        <path d={area(orig.env, orig.dur)} fill="#64748B" opacity="0.38" pointerEvents="none" />
+        {changed && <path d={area(tuned.envNow, tuned.durNow)} fill="#6366F1" opacity="0.5" pointerEvents="none" />}
+        {headX != null && <line x1={headX} x2={headX} y1="0" y2={H1} stroke="#EF4444" strokeWidth="2.5" />}
+      </svg>
+      <div style={{ fontSize: 12, fontWeight: 800, color: 'var(--muted)', marginTop: 8 }}>WYSOKOŚĆ SZUMU GŁOSKI „{sound}” W CZASIE (każda kropka = ok. 5 ms)</div>
+      <svg viewBox={`0 0 ${W} ${H2}`} width="100%" style={{ display: 'block', background: 'var(--soft)', borderRadius: 10 }}>
+        {[3000, 5000, 7000, 9000].map(hz => (
+          <g key={hz}><line x1={PADL} x2={W - 6} y1={y(hz)} y2={y(hz)} stroke="var(--border)" strokeWidth="1" /><text x={PADL - 6} y={y(hz) + 4} textAnchor="end" fontSize="11" fill="var(--muted)">{hz / 1000} kHz</text></g>
+        ))}
+        {lines.map(([label, hz, col]) => (
+          <g key={label}><line x1={PADL} x2={W - 6} y1={y(hz)} y2={y(hz)} stroke={col} strokeWidth="1.5" strokeDasharray="6 5" opacity="0.8" /><text x={W - 10} y={y(hz) - 4} textAnchor="end" fontSize="11" fontWeight="700" fill={col}>{label}</text></g>
+        ))}
+        {orig.track.map((d, i) => <circle key={'o' + i} cx={x(d.t)} cy={y(d.hz)} r="3.2" fill="#64748B" opacity={changed ? 0.4 : 0.85} />)}
+        {changed && tuned.trackNow.map((d, i) => <circle key={'n' + i} cx={x(d.t)} cy={y(d.hz)} r="3.2" fill="#6366F1" />)}
+        {/* średnie: linia przerywana = oryginał, ciągła = po strojeniu */}
+        <line x1={x(orig.segT0)} x2={x(orig.segT1)} y1={y(tuned.baseHz)} y2={y(tuned.baseHz)} stroke="#475569" strokeWidth="2" strokeDasharray="4 3" />
+        {changed && <line x1={x(nowT0)} x2={x(nowT1)} y1={y(tuned.nowHz)} y2={y(tuned.nowHz)} stroke="#4338CA" strokeWidth="2.5" />}
+        {headX != null && <line x1={headX} x2={headX} y1="0" y2={H2} stroke="#EF4444" strokeWidth="2.5" />}
+      </svg>
+      <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', fontSize: 12, marginTop: 4 }}>
+        <span><span style={{ display: 'inline-block', width: 10, height: 10, borderRadius: 5, background: '#64748B', opacity: 0.6, marginRight: 4 }} />oryginał: {tuned.baseHz} Hz, {orig.lenMs} ms</span>
+        <span><span style={{ display: 'inline-block', width: 10, height: 10, borderRadius: 5, background: '#6366F1', marginRight: 4 }} />po strojeniu: {tuned.nowHz} Hz, {tuned.lenNowMs} ms</span>
+      </div>
+      <div className="text-muted" style={{ fontSize: 12, lineHeight: 1.5, marginTop: 4 }}>
+        Liczba w Hz to średnia z kropek w zaznaczonym polu. {take.segments.length > 1 ? 'W słowie są dwa szumy: kliknij pole z właściwą głoską. ' : ''}Czerwona kreska pokazuje, co teraz gra.
+      </div>
+    </div>
+  )
+}
